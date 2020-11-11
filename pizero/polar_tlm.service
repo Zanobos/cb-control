@@ -1,0 +1,16 @@
+[Unit]
+Description=polar_tlm.service
+After=syslog.target network.target
+
+[Service]
+PIDFile=/opt/tlm/pid
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/tlm
+ExecStart=python /opt/tlm/send_tlm.py 
+
+[Install]
+WantedBy=multi-user.target
+
+

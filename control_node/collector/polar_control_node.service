@@ -1,0 +1,16 @@
+[Unit]
+Description=polar_control_node.service
+After=syslog.target network.target
+
+[Service]
+PIDFile=/opt/cb-station/pid
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/cb-station
+ExecStart=/opt/cb-station/venv/bin/python /opt/cb-station/collect_tlm.py 
+
+[Install]
+WantedBy=multi-user.target
+
+
