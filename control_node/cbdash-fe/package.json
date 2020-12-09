@@ -1,0 +1,47 @@
+{
+  "name": "polar-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "author": "alessandro martignano <alessandro.martignano@gmail.com>",
+  "scripts": {
+    "serve": "vue-cli-service serve --open",
+    "build": "vue-cli-service build",
+    "start": "node server.js",
+    "e2e": "node test/e2e/runner.js",
+    "lint": "vue-cli-service lint",
+    "dev": "vue-cli-service serve --open",
+    "lint-fix": "vue-cli-service lint --fix"
+  },
+  "dependencies": {
+    "apexcharts": "^3.22.2",
+    "chart.js": "^2.9.3",
+    "chartjs-plugin-zoom": "^0.7.7",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "register-service-worker": "^1.7.1",
+    "v-calendar": "^2.1.1",
+    "vue": "^2.6.11",
+    "vue-apexcharts": "^1.6.0",
+    "vue-chartjs": "^3.5.0",
+    "vue-i18n": "^8.18.2",
+    "vue-router": "^3.3.4",
+    "vue-router-prefetch": "^1.6.0",
+    "vue2-transitions": "^0.3.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^4.4.6",
+    "@vue/cli-plugin-eslint": "^4.4.6",
+    "@vue/cli-plugin-pwa": "^4.4.6",
+    "@vue/cli-service": "^4.4.6",
+    "node-sass": "^4.14.1",
+    "sass-loader": "^8.0.2",
+    "vue-cli-plugin-i18n": "^1.0.1",
+    "vue-template-compiler": "^2.6.11"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 11"
+  ]
+}
