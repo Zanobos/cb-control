@@ -84,7 +84,7 @@
           </line-chart>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient">Export CSV</base-button>
+        <base-button v-on:click="foo" type="primary-nogradient">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -95,6 +95,11 @@
 import LineChart from '@/components/Charts/LineChart';
 import config from '@/config';
 import SeedableRandomDataPointGenerator from '@/components/Charts/seedableRandomDataPointGenerator.js'
+import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
+import {url, token, org} from '@/influx/env'
+
+const queryApi = new InfluxDB({url, token}).getQueryApi(org)
+const fluxQuery = 'from(bucket: "telemetry") |> range(start: -2d, stop: -1m)'
 
 export default {
   components: {
@@ -268,6 +273,25 @@ export default {
       this.$refs.bigChart.updateGradients(chartData);
       this.bigLineChart.chartData = chartData;
       this.bigLineChart.activeIndex = index;
+    },
+    foo() {
+      queryApi.queryRows(fluxQuery, {
+      next(row, tableMeta) {
+        const o = tableMeta.toObject(row)
+        // console.log(JSON.stringify(o, null, 2))
+        console.log(o);
+        console.log(
+          `${o._time} ${o._measurement} in '${o.location}' (${o.example}): ${o._field}=${o._value}`
+        )
+      },
+      error(error) {
+        console.error(error)
+        console.log('\nFinished ERROR')
+      },
+      complete() {
+        console.log('\nFinished SUCCESS')
+      },
+    })
     }
   },
   mounted() {

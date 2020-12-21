@@ -14,8 +14,9 @@
     "lint-fix": "vue-cli-service lint --fix"
   },
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.9.0",
     "apexcharts": "^3.22.2",
-    "chart.js": "^2.9.3",
+    "chart.js": "^2.9.4",
     "chartjs-plugin-zoom": "^0.7.7",
     "cors": "^2.8.5",
     "express": "^4.17.1",
@@ -23,7 +24,7 @@
     "v-calendar": "^2.1.1",
     "vue": "^2.6.11",
     "vue-apexcharts": "^1.6.0",
-    "vue-chartjs": "^3.5.0",
+    "vue-chartjs": "^3.5.1",
     "vue-i18n": "^8.18.2",
     "vue-router": "^3.3.4",
     "vue-router-prefetch": "^1.6.0",
