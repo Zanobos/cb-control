@@ -6,7 +6,7 @@
     <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-4 col-md-6">
       <!-- Add a function in card sass like the one fore the button, use a selector like card-border-$primary where $primary can be any of the one defined in config -->
       <!--<div v-bind:class="['card', 'card-stats', ((i*73)%90) > 15 ? ( ((i*73)%90) > 50 ? 'charged' : 'half-charged') : 'not-charged']" >-->
-      <div v-bind:class="['card', 'card-stats', cbData.charge > 15 ? ( cbData.charge > 50 ? 'charged' : 'half-charged') : 'not-charged']" >
+      <div v-bind:class="['card', 'card-stats', cbData.charge ? ( cbData.charge > 15 ? ( cbData.charge > 50 ? 'charged' : 'half-charged') : 'not-charged') : '']" >
           <div class="card-body text-center">
 
             <div class="row" style="margin-bottom: 15px">
@@ -25,7 +25,7 @@
                     <!--<p class="card-category">Charger status</p>-->
                     <!--<h1 class="card-text">Good</h1>-->
                     <p class="card-category">Charged</p>
-                    <h1 class="card-text">{{cbData.ah}} Ah</h1>
+                    <h1 class="card-text">{{cbData.ah ? cbData.ah+"Ah" : "-"}}</h1>
                 </div>
               </div>
 
@@ -39,14 +39,14 @@
                   width="70px" height="" alt="charger" title="charger" />
                 </div>
                 <!--<h1 class="card-text">#{{i*3%5}}</h1>-->
-                <h1 class="card-text">#{{cbData.bms}}</h1>
+                <h1 class="card-text">{{cbData.bms ? "#"+cbData.bms : "-"}}</h1>
               </div>
 
               <div class="col-6">
                 <div class="numbers">
                     <p class="card-category">Battery status</p>
                     <!--<h1 class="card-text">{{(i*73)%90}}% {{ (i%5) == 0 ? '(Refill)' : ''}}</h1>-->
-                    <h1 class="card-text">{{cbData.charge}}%</h1>
+                    <h1 class="card-text">{{cbData.charge ? cbData.charge + "%" : "-"}}</h1>
                 </div>
               </div>
 
@@ -62,12 +62,23 @@
 const iconsContext = require.context('@/assets/icons/', true, /\.svg$/);
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/influx/env'
-
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
+
+/*
+// Shows chargers only if a battery is connected
 const fluxQuery = `from(bucket: "telemetry") 
                     |> range(start: -1d)
                     |> drop(columns: ["_start", "_stop"])
                     |> filter(fn: (r) => r["_measurement"] == "tlm" and r["_field"] == "ID Batt"  )
+                    |> group(columns: ["_value"])
+                    |> top(n:1, columns: ["_time"])
+                    |> yield()`;
+                    */
+
+const fluxQuery = `from(bucket: "telemetry") 
+                    |> range(start: -1d)
+                    |> drop(columns: ["_start", "_stop"])
+                    |> filter(fn: (r) => r["_measurement"] == "tlm" and r["_field"] == "IP"  )
                     |> group(columns: ["_value"])
                     |> top(n:1, columns: ["_time"])
                     |> yield()`;
@@ -97,32 +108,31 @@ export default {
     getCBs() {
       var cbs = []
       var outerScope = this
-      console.log(`Querying influx for chargers list.\n${fluxQuery}`);
-
+      console.log('Querying influx for chargers list.');
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
           console.log(o)
-          if (!outerScope.cbsData.some(e => e.cbs === o.origin)) {
+          if (!outerScope.cbsList.some(e => e.cbs == o.origin)) {
             outerScope.cbsList.push({cbs: o.origin, bms: o.bms})
           }
         },
         error(error) {
           console.error(error)
-          console.log('\nFinished ERROR')
+          console.log('CBS FETCH ERROR')
         },
         complete() {
-          console.log('\nFinished SUCCESS')
+          console.log('CBS FETCH SUCCESS')
           outerScope.getCBsStatuses()
         },
       })
     },
     getCBsStatuses() {
       var outerScope = this
-      console.log("CBs found: ")
+      console.log("CBs list found: ")
       console.log(this.cbsList)
       this.cbsList.forEach(e => {
-        console.log(`Telemetry for cb: ${e}`)
+        console.log(`Telemetry for cb: ${e.cbs}`)
         var query = `from(bucket: "telemetry") 
                       |> range(start: -1d)
                       |> drop(columns: ["_start", "_stop", "bms"])
@@ -146,12 +156,13 @@ export default {
           },
           error(error) {
             console.error(error)
-            console.log('\nFinished ERROR')
+            console.log(`${e.cbs} DATA FETCH ERROR`)
           },
           complete() {
-            console.log('\nFinished SUCCESS')
-            console.log(e)
-            outerScope.cbsData.push(e)
+            console.log(`${e.cbs} DATA FETCH SUCCESS`)
+            console.log(outerScope.cbsData)
+            if (!outerScope.cbsData.some(i => i.cbs == e.cbs))
+              outerScope.cbsData.push(e)
           },
         })
       })
@@ -165,6 +176,9 @@ export default {
     });
     this.whiteTheme = document.body.classList.contains('white-content');
     this.toggleImages();
+    this.interval = setInterval(function () {
+      this.getCBs()
+    }.bind(this), 5000)
   }
 };
 </script>

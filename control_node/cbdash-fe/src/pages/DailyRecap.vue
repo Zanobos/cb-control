@@ -8,16 +8,19 @@
       color="green"
       :is-dark="!whiteTheme"
       locale="en"
+      :max-date="new Date()"
     >
       <template v-slot="{ inputValue, inputEvents }">
         <card>
           <form @submit.prevent>
             <div class="form-row">
               <base-input class="col-md-2" placeholder="Bms">
-                <select id="inputState" class="form-control">
-                  <option selected>BMS 1</option>
-                  <option>BMS 2</option>
-                  <option>BMS 3</option>
+                <select v-model="selectedBMS" id="inputState" class="form-control">
+                  <option
+                    v-for="(bms) in getBMSs"
+                    :value="bms"
+                    :key="bms"
+                  >{{bms}}</option>
                 </select>
               </base-input>
 
@@ -42,14 +45,14 @@
       </template>
     </vc-date-picker>
 
-    <div class="row">
+    <div v-if="loaded" class="row">
 
       <div class="col-md-4">
         <card class="padded-card text-center">  
           <h5 class="card-category"> Min. Voltage </h5>
           <h1 class="card-text">
             <i class="fas fa-bolt spaced-icon"></i>
-            16.30 V</h1> 
+            {{ minVoltage | numeralFormat('0[.]00') }} V</h1> 
         </card>
       </div>
 
@@ -58,7 +61,7 @@
           <h5 class="card-category"> Max. Ampere </h5>
           <h1 class="card-text">
             <i class="fas fa-bolt spaced-icon"></i>
-            8.92 A</h1> 
+            {{ maxCurrent | numeralFormat('0[.]00') }} A</h1> 
         </card>
       </div>
     
@@ -67,7 +70,7 @@
           <h5 class="card-category"> Uptime </h5>
           <h1 class="card-text">
             <i class="tim-icons icon-watch-time spaced-icon"></i>
-            16 h 31 m </h1> 
+            {{totalTmr}} h</h1> 
         </card>
       </div>
 
@@ -76,7 +79,7 @@
           <h5 class="card-category"> Charger N° </h5>
           <h1 class="card-text">
             <i class="fas fa-charging-station spaced-icon"></i>
-            1</h1> 
+            {{cb}}</h1> 
         </card>
       </div>
 
@@ -85,7 +88,7 @@
           <h5 class="card-category"> Min. Temperature </h5>
           <h1 class="card-text">
             <i class="fas fa-temperature-low spaced-icon"></i>
-            18.2° C V</h1> 
+            {{minTempBatt | numeralFormat('0[.]00') }}° C V</h1> 
         </card>
       </div>
 
@@ -94,7 +97,8 @@
           <h5 class="card-category"> Max. Temperature </h5>
           <h1 class="card-text">
             <i class="fas fa-temperature-high spaced-icon"></i>
-            37.5° C V</h1> 
+            {{ maxTempBatt | numeralFormat('0[.]00') }}° C
+          </h1> 
         </card>
       </div>
 
@@ -103,20 +107,31 @@
           <h5 class="card-category"> Charge Time </h5>
           <h1 class="card-text">
             <i class="fas fa-hourglass-half spaced-icon"></i>
-            16 h 31 m </h1> 
+            {{chgTmr}} h</h1> 
         </card>
       </div>
 
     </div>
 
-    <div class="row">
+    <div v-if="items.length > 0" class="row">
       <div class="col-12">
         <card :title="selectedBMS + ' errors'">
           <div class="table-responsive">
-            <base-table :data="table1.data"
-                        :columns="table1.columns"
-                        thead-classes="text-primary">
-            </base-table>
+            <b-table 
+              striped 
+              hover 
+              sticky-header
+              id="my-table"
+              :items="items"
+              :per-page="perPage"
+              :current-page="currentPage">
+            </b-table>
+            <b-pagination
+              v-model="currentPage"
+              :total-rows="rows"
+              :per-page="perPage"
+              aria-controls="my-table"
+            ></b-pagination>
           </div>
         </card>
       </div>
@@ -126,58 +141,163 @@
 </template>
 <script>
 import Card from '@/components/Cards/Card.vue';
-import { BaseTable } from "@/components";
-const tableColumns = ["Date", "Error", "Code"];
-const tableData = [
-  {
-  id: 1,
-  date: "07/12/2020 15:30:23",
-  error: "66",
-  code: "Lorem ipsum dolor",
-  },
-  {
-    id:2,
-  },{
-    id:3,
-  },{
-    id:4,
-  },{
-    id:5,
-  },{
-    id:6,
-  },{
-    id:7,
-  },
-
-];
+import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
+import {url, token, org} from '@/influx/env'
+const queryApi = new InfluxDB({url, token}).getQueryApi(org)
 
 export default {
-    components: {
-      Card,
-      BaseTable
+  components: {
+    Card
   },
   data() {
     return {
-      selectedBMS: 'BMS 1',
+      selectedBMS: '',
+      perPage: 15,
+      currentPage: 1,
+      items: [],
+
+      cb: '',
+      chgTmr: '',
+      totalTmr: '',
+      minVoltage: '',
+      maxCurrent: '',
+      minTempBatt: '',
+      maxTempBatt: '',
+      loaded: false,
+
       whiteTheme: false,
       range: {
-        start: null,
-        end: null,
+        start: '',
+        end: '',
       },
       masks: {
         input: 'YYYY-MM-DD h:mm A',
       },
-      table1: {
-        title: "Simple Table",
-        columns: [...tableColumns],
-        data: [...tableData]
-      },
     };
+  },
+  computed: {
+    getBMSs () {
+      return this.$store.state.bmss
+    },
+    rows() {
+        return this.items.length
+    }
+  },
+  watch: {
+    range: function(val) {
+      this.checkInput()
+    },
+    selectedBMS: function(val) {
+      this.checkInput()
+    }
   },
   mounted() {
     this.$root.$on('whiteTheme', (whiteTheme) => {
       this.whiteTheme = whiteTheme;
     });
+  },
+  methods: {
+    checkInput() {
+      if(this.selectedBMS != '' && this.range.start != '' && this.range.end != '')
+        this.loadData()
+    },
+    loadData() {
+      var outerScope = this
+
+      const dataQuery = `from(bucket: "telemetry") 
+                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                          |> drop(columns: ["_start", "_stop"])
+                          |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
+                              (r._field == "totalTmr" or 
+                              r._field == "chgTmr" ))
+                          |> top(n:1, columns: ["_time"])
+                          |> yield(name: "times")
+
+                          from(bucket: "telemetry") 
+                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                          |> drop(columns: ["_start", "_stop"])
+                          |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
+                              (r._field == "tempBatt" or 
+                              r._field == "current"
+                              ))
+                          |> max()
+                          |> yield(name: "max")
+
+                          from(bucket: "telemetry") 
+                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                          |> drop(columns: ["_start", "_stop"])
+                          |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
+                              (r._field == "tempBatt" or 
+                              r._field == "voltage"
+                              ))
+                          |> min()
+                          |> yield(name: "min")`
+
+      const errorQuery = `import "json"
+
+                          from(bucket: "telemetry") 
+                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                          |> drop(columns: ["_start", "_stop"])
+                          |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
+                          |> sort(columns: ["_time"])
+                          |> map(fn: (r) => ({ r with
+                              jsonStr: string(v: json.encode(v: {"Time":r._time,"Error":r._value,"BMS":r.bms,"CB":r.origin}))}))
+                          |> yield(name: "errors")`
+
+      console.log('Querying influx for daily recap.');
+      queryApi.queryRows(dataQuery, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+
+          outerScope.cb = o.origin
+
+          switch (o.result) {
+            case 'times':
+              if(o._field == 'chgTmr')
+                outerScope.chgTmr = o._value
+              if(o._field == 'totalTmr')
+                outerScope.totalTmr = o._value
+              break
+            case 'min':
+              if(o._field == 'tempBatt')
+                outerScope.minTempBatt = o._value
+              if(o._field == 'voltage')
+                outerScope.minVoltage = o._value
+              break
+            case 'max':
+              if(o._field == 'tempBatt')
+                outerScope.maxTempBatt = o._value
+              if(o._field == 'current')
+                outerScope.maxCurrent = o._value
+              break
+
+          }
+        },
+        error(error) {
+          console.error(error)
+          console.log('RECAP FETCH ERROR')
+        },
+        complete() {
+          console.log('RECAP FETCH SUCCESS')
+          outerScope.loaded = true;
+        },
+      })
+
+      queryApi.queryRows(errorQuery, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+          outerScope.items.push(JSON.parse(o.jsonStr))
+        },
+        error(error) {
+          console.error(error)
+          console.log('INFO FETCH ERROR')
+        },
+        complete() {
+          console.log('INFO FETCH SUCCESS')
+        },
+      })
+      
+    }
   }
 };
 </script>

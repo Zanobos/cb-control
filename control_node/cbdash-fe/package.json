@@ -14,21 +14,27 @@
     "lint-fix": "vue-cli-service lint --fix"
   },
   "dependencies": {
+    "@amcharts/amcharts4": "^4.10.13",
     "@influxdata/influxdb-client": "^1.9.0",
     "apexcharts": "^3.22.2",
+    "bootstrap": "^4.5.3",
+    "bootstrap-vue": "^2.21.1",
     "chart.js": "^2.9.4",
     "chartjs-plugin-zoom": "^0.7.7",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "numeral": "^2.0.6",
     "register-service-worker": "^1.7.1",
     "v-calendar": "^2.1.1",
     "vue": "^2.6.11",
     "vue-apexcharts": "^1.6.0",
     "vue-chartjs": "^3.5.1",
     "vue-i18n": "^8.18.2",
+    "vue-numerals": "^3.1.1",
     "vue-router": "^3.3.4",
     "vue-router-prefetch": "^1.6.0",
-    "vue2-transitions": "^0.3.0"
+    "vue2-transitions": "^0.3.0",
+    "vuex": "^3.6.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.4.6",

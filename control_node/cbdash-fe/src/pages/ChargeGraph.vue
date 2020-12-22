@@ -9,6 +9,7 @@
     color="green"
     :is-dark="!whiteTheme"
     locale="en"
+    :max-date="new Date()"
   >
     <template v-slot="{ inputValue, inputEvents }">
       <card>
@@ -16,11 +17,15 @@
           <div class="form-row">
             <base-input class="col-md-2" placeholder="Bms">
               <select v-model="selectedBMS" id="inputState" class="form-control">
-                <option selected>BMS 1</option>
-                <option>BMS 2</option>
-                <option>BMS 3</option>
+                <option
+                  v-for="(bms) in getBMSs"
+                  :value="bms"
+                  :key="bms"
+                >{{bms}}</option>
               </select>
+              
             </base-input>
+
 
             <base-input
               class="col-md-3"
@@ -43,14 +48,14 @@
     </template>
   </vc-date-picker>
 
-  <div class="row">
+  <div v-if="dataCurrent.length > 0" class="row">
     <div class="col-12">
       <card type="chart">
         <template slot="header">
           <div class="row">
             <div class="col-sm-6">
               <h5 class="card-category">Battery statistics</h5>
-              <h2 class="card-title">{{selectedBMS}}</h2>
+              <h2 class="card-title">BMS {{selectedBMS}} - Current (A)</h2>
             </div>
             <!--
             <div class="col-sm-6">
@@ -73,225 +78,117 @@
             -->
           </div>
         </template>
-        <div class="chart-area" style="height: 100%">
-          <line-chart style="height: 100%"
-                      ref="bigChart"
-                      chart-id="big-line-chart"
-                      :chart-data="bigLineChart.chartData"
-                      :gradient-colors="bigLineChart.gradientColors"
-                      :gradient-stops="bigLineChart.gradientStops"
-                      :extra-options="bigLineChart.extraOptions">
-          </line-chart>
+        <div v-if="dataCurrent.length > 0" class="chart-area" style="height: 100%">
+          <div class="hello" ref="chartdivcurrent">
+          </div>
         </div>
       <div class="card-footer text-right">
-        <base-button v-on:click="foo" type="primary-nogradient">Export CSV</base-button>
+        <base-button type="primary-nogradient">Export CSV</base-button>
       </div>
       </card>
     </div>
   </div>
+
+  <div v-if="dataTension.length > 0" class="row">
+    <div class="col-12">
+      <card type="chart">
+        <template slot="header">
+          <div class="row">
+            <div class="col-sm-6">
+              <h5 class="card-category">Battery statistics</h5>
+              <h2 class="card-title">BMS {{selectedBMS}} - Tension (V)</h2>
+            </div>
+          </div>
+        </template>
+        <div class="chart-area" style="height: 100%">
+          <div class="hello" ref="chartdivtension">
+          </div>
+        </div>
+      <div class="card-footer text-right">
+        <base-button type="primary-nogradient">Export CSV</base-button>
+      </div>
+      </card>
+    </div>
+  </div>
+
+  <div v-if="dataTemperature.length > 0" class="row">
+    <div class="col-12">
+      <card type="chart">
+        <template slot="header">
+          <div class="row">
+            <div class="col-sm-6">
+              <h5 class="card-category">Battery statistics</h5>
+              <h2 class="card-title">BMS {{selectedBMS}} - Temperature (°C)</h2>
+            </div>
+          </div>
+        </template>
+        <div class="chart-area" style="height: 100%">
+          <div class="hello" ref="chartdivtemperature">
+          </div>
+        </div>
+      <div class="card-footer text-right">
+        <base-button type="primary-nogradient">Export CSV</base-button>
+      </div>
+      </card>
+    </div>
+  </div>
+
 </div>
 </template>
 <script>
-import LineChart from '@/components/Charts/LineChart';
-import config from '@/config';
-import SeedableRandomDataPointGenerator from '@/components/Charts/seedableRandomDataPointGenerator.js'
+import Card from '@/components/Cards/Card.vue';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/influx/env'
 
+import * as am4core from "@amcharts/amcharts4/core";
+import * as am4charts from "@amcharts/amcharts4/charts";
+import am4themes_animated from "@amcharts/amcharts4/themes/animated";
+
+//am4core.useTheme(am4themes_animated);
+
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
-const fluxQuery = 'from(bucket: "telemetry") |> range(start: -2d, stop: -1m)'
 
 export default {
-  components: {
-    LineChart
+    components: {
+        Card
   },
   data() {
     return {
+      selectedBMS: '',
+      perPage: 15,
+      currentPage: 1,
+      dataCurrent: [],
+      dataTension: [],
+      dataTemperature: [],
+
+      chartCurrent: null,
+      chartTension: null,
+      chartTemperature: null,
+
       whiteTheme: false,
-      selectedBMS: 'BMS 1',
       range: {
-        start: null,
-        end: null,
+        start: '',
+        end: '',
       },
       masks: {
         input: 'YYYY-MM-DD h:mm A',
       },
-      bigLineChart: {
-        allData: [
-          [100, 70, 90, 70, 85, 60, 75, 60, 90, 80, 110, 100],
-          [80, 120, 105, 110, 95, 105, 90, 100, 80, 95, 70, 120],
-          [60, 80, 65, 130, 80, 105, 90, 130, 70, 115, 60, 130]
-        ],
-        chartData: {
-          datasets: [{ }],
-          labels: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
-        },
-        activeIndex: 0,
-        extraOptions: {
-          maintainAspectRatio: false,
-          legend: {
-            display: false
-          },
-          responsive: true,
-          tooltips: {
-            backgroundColor: '#f5f5f5',
-            titleFontColor: '#333',
-            bodyFontColor: '#666',
-            bodySpacing: 4,
-            xPadding: 12,
-            mode: "nearest",
-            intersect: 0,
-            position: "nearest"
-          },
-          scales: {
-            yAxes: [{
-              barPercentage: 1.6,
-              gridLines: {
-                drawBorder: false,
-                color: 'rgba(29,140,248,0.0)',
-                zeroLineColor: "transparent",
-              },
-              ticks: {
-                suggestedMin: 60,
-                suggestedMax: 125,
-                padding: 20,
-                fontColor: "#9a9a9a"
-              }
-            }],
-
-            xAxes: [{
-              barPercentage: 1.6,
-              gridLines: {
-                drawBorder: false,
-                color: 'rgba(225,78,202,0.1)',
-                zeroLineColor: "transparent",
-              },
-              ticks: {
-                padding: 20,
-                fontColor: "#9a9a9a"
-              }
-            }]
-          },
-          plugins: {
-            zoom: {
-              // Container for pan options
-              pan: {
-                  // Boolean to enable panning
-                  enabled: true,
-
-                  // Panning directions. Remove the appropriate direction to disable
-                  // Eg. 'y' would only allow panning in the y direction
-                  // A function that is called as the user is panning and returns the
-                  // available directions can also be used:
-                  //   mode: function({ chart }) {
-                  //     return 'xy';
-                  //   },
-                  mode: 'xy',
-
-              },
-
-              // Container for zoom options
-              zoom: {
-                  // Boolean to enable zooming
-                  enabled: true,
-
-                  // Enable drag-to-zoom behavior
-                  drag: false,
-
-                  // Drag-to-zoom effect can be customized
-                  // drag: {
-                  // 	 borderColor: 'rgba(225,225,225,0.3)'
-                  // 	 borderWidth: 5,
-                  // 	 backgroundColor: 'rgb(225,225,225)',
-                  // 	 animationDuration: 0
-                  // },
-
-                  // Zooming directions. Remove the appropriate direction to disable
-                  // Eg. 'y' would only allow zooming in the y direction
-                  // A function that is called as the user is zooming and returns the
-                  // available directions can also be used:
-                  //   mode: function({ chart }) {
-                  //     return 'xy';
-                  //   },
-                  mode: 'xy',
-
-                  rangeMin: {
-                      // Format of min zoom range depends on scale type
-                      x: null,
-                      y: null
-                  },
-                  rangeMax: {
-                      // Format of max zoom range depends on scale type
-                      x: null,
-                      y: null
-                  },
-
-                  // Speed of zoom via mouse wheel
-                  // (percentage of zoom on a wheel event)
-                  speed: 0.1,
-
-                  // Minimal zoom distance required before actually applying zoom
-                  threshold: 2,
-
-                  // On category scale, minimal zoom level before actually applying zoom
-                  sensitivity: 3,
-
-                  // Function called while the user is zooming
-                  //onZoom: function({chart}) { console.log(`I'm zooming!!!`); },
-                  // Function called once zooming is completed
-                  //onZoomComplete: function({chart}) { console.log(`I was zoomed!!!`); }
-              }
-            }
-          }
-        },
-        gradientColors: config.colors.primaryGradient,
-        gradientStops: [1, 0.4, 0],
-        categories: []
-      },
     };
   },
-  methods: {
-    initBigChart(index) {
-      let chartData = {
-        datasets: [{
-          fill: true,
-          borderColor: config.colors.primary,
-          borderWidth: 2,
-          borderDash: [],
-          borderDashOffset: 0.0,
-          pointBackgroundColor: config.colors.primary,
-          pointBorderColor: 'rgba(255,255,255,0)',
-          pointHoverBackgroundColor: config.colors.primary,
-          pointBorderWidth: 20,
-          pointHoverRadius: 4,
-          pointHoverBorderWidth: 15,
-          pointRadius: 4,
-          data: this.bigLineChart.allData[index]
-        }],
-        labels: ['00:00','01:00','02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00']
-      }
-      this.$refs.bigChart.updateGradients(chartData);
-      this.bigLineChart.chartData = chartData;
-      this.bigLineChart.activeIndex = index;
+  computed: {
+    getBMSs () {
+      return this.$store.state.bmss
     },
-    foo() {
-      queryApi.queryRows(fluxQuery, {
-      next(row, tableMeta) {
-        const o = tableMeta.toObject(row)
-        // console.log(JSON.stringify(o, null, 2))
-        console.log(o);
-        console.log(
-          `${o._time} ${o._measurement} in '${o.location}' (${o.example}): ${o._field}=${o._value}`
-        )
-      },
-      error(error) {
-        console.error(error)
-        console.log('\nFinished ERROR')
-      },
-      complete() {
-        console.log('\nFinished SUCCESS')
-      },
-    })
+    rows() {
+      return this.items.length
+    }
+  },
+  watch: {
+    range: function(val) {
+      this.checkInput()
+    },
+    selectedBMS: function(val) {
+      this.checkInput()
     }
   },
   mounted() {
@@ -299,9 +196,152 @@ export default {
       this.whiteTheme = whiteTheme;
     });
     this.whiteTheme = document.body.classList.contains('white-content');
-    this.initBigChart(0);
+  },
+  methods: {
+    checkInput() {
+      if(this.selectedBMS != '' && this.range.start != '' && this.range.end != '')
+        this.loadData()
+    },
+    loadData() {
+      var outerScope = this
+
+      const dataQuery = `import "json"
+                         from(bucket: "telemetry") 
+                         |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                         |> drop(columns: ["_start", "_stop"])
+                         |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
+                            (r._field == "voltage" or 
+                            r._field == "current" or
+                            r._field == "tempBatt") )
+                         |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
+                         |> map(fn: (r) => ({ r with
+                            jsonStr: string(v: json.encode(v: {"Time":r._time,"Field":r._field,"Value":r._value,"CB":r.origin}))}))
+                         |> yield()`
+
+      console.log('Querying influx for charge data.');
+      queryApi.queryRows(dataQuery, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+          var e = JSON.parse(o.jsonStr)
+          if(o._field == 'current') {
+            outerScope.dataCurrent.push({ date: new Date(e.Time), value: e.Value });
+          }
+          if(o._field == 'voltage') {
+            outerScope.dataTension.push({ date: new Date(e.Time), value: e.Value });
+          }
+          if(o._field == 'tempBatt') {
+            outerScope.dataTemperature.push({ date: new Date(e.Time), value: e.Value });
+          }
+        },
+        error(error) {
+          console.error(error)
+          console.log('CHARGE DATA FETCH ERROR')
+        },
+        complete() {
+          console.log('CHARGE DATA FETCH SUCCESS')
+          console.log(outerScope.dataCurrent.length)
+          outerScope.drawChartCurrent()
+          outerScope.drawChartTension()
+          outerScope.drawChartTemperature()
+        },
+      })
+      
+    },
+    drawChartCurrent() {
+      let chart = am4core.create(this.$refs.chartdivcurrent, am4charts.XYChart);
+
+      chart.paddingRight = 20;
+
+      chart.data = this.dataCurrent
+
+      let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+      dateAxis.renderer.grid.template.location = 0;
+
+      let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+      valueAxis.tooltip.disabled = true;
+      valueAxis.renderer.minWidth = 35;
+
+      let series = chart.series.push(new am4charts.LineSeries());
+      series.dataFields.dateX = "date";
+      series.dataFields.valueY = "value";
+
+      series.tooltipText = "{valueY.value}";
+      chart.cursor = new am4charts.XYCursor();
+
+      let scrollbarX = new am4charts.XYChartScrollbar();
+      scrollbarX.series.push(series);
+      chart.scrollbarX = scrollbarX;
+
+      this.chartCurrent = chart;
+    },
+    drawChartTension() {
+      let chart = am4core.create(this.$refs.chartdivtension, am4charts.XYChart);
+
+      chart.paddingRight = 20;
+
+      chart.data = this.dataTension
+
+      let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+      dateAxis.renderer.grid.template.location = 0;
+
+      let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+      valueAxis.tooltip.disabled = true;
+      valueAxis.renderer.minWidth = 35;
+
+      let series = chart.series.push(new am4charts.LineSeries());
+      series.dataFields.dateX = "date";
+      series.dataFields.valueY = "value";
+
+      series.tooltipText = "{valueY.value}";
+      chart.cursor = new am4charts.XYCursor();
+
+      let scrollbarX = new am4charts.XYChartScrollbar();
+      scrollbarX.series.push(series);
+      chart.scrollbarX = scrollbarX;
+
+      this.chartTension = chart;
+    },
+    drawChartTemperature() {
+      let chart = am4core.create(this.$refs.chartdivtemperature, am4charts.XYChart);
+
+      chart.paddingRight = 20;
+
+      chart.data = this.dataTemperature
+
+      let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+      dateAxis.renderer.grid.template.location = 0;
+
+      let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+      valueAxis.tooltip.disabled = true;
+      valueAxis.renderer.minWidth = 35;
+
+      let series = chart.series.push(new am4charts.LineSeries());
+      series.dataFields.dateX = "date";
+      series.dataFields.valueY = "value";
+
+      series.tooltipText = "{valueY.value}";
+      chart.cursor = new am4charts.XYCursor();
+
+      let scrollbarX = new am4charts.XYChartScrollbar();
+      scrollbarX.series.push(series);
+      chart.scrollbarX = scrollbarX;
+
+      this.chartTemperature = chart;
+    },
+  },
+  beforeDestroy() {
+    if (this.chartCurrent)
+      this.chartCurrent.dispose();
+    if (this.chartTension)
+      this.chartTension.dispose();
+    if (this.chartTemperature)
+      this.chartTemperature.dispose();
   }
 };
 </script>
-<style>
+<style scoped>
+.hello {
+  width: 100%;
+  height: 500px;
+}
 </style>
