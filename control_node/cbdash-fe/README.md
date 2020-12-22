@@ -8,5 +8,16 @@
 
 ```bash
 npm install
+```
+
+## Development
+
+```bash
 npm run serve
+```
+
+## Deploy
+
+```bash
+npm run build
 ```
