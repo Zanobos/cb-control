@@ -1,8 +1,11 @@
 import VueRouter from "vue-router";
 import routes from "./routes";
 
+import { createRouter, createWebHistory } from 'vue-router'
+
 // configure router
 const router = new VueRouter({
+  mode: 'history',
   routes, // short for routes: routes
   linkExactActiveClass: "active",
   scrollBehavior: (to) => {

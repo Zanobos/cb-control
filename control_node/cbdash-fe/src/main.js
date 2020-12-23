@@ -67,8 +67,8 @@ new Vue({
       const queryApi = new InfluxDB({url, token}).getQueryApi(org)
       const fluxQuery = `from(bucket: "telemetry") 
                           |> range(start: -1d)
-                          |> drop(columns: ["_start", "_stop"])
-                          |> filter(fn: (r) => r["_measurement"] == "tlm" and r["_field"] == "ID Batt"  )
+                          |> filter(fn: (r) => r["_measurement"] == "tlm")
+                          |> filter(fn: (r) => r["_field"] == "ID Batt")
                           |> group(columns: ["_value"])
                           |> top(n:1, columns: ["_time"])
                           |> yield()`

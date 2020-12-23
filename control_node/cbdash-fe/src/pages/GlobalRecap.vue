@@ -134,32 +134,29 @@ export default {
       var outerScope = this
       var errs = []
 
-      const infoQuery = `import "json"
-
-                        from(bucket: "telemetry") 
-                        |> range(start: -10d)
-                        |> drop(columns: ["_start", "_stop", "origin"])
-                        |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            (r._field == "totalTmr" or 
-                            r._field == "cycleNum" or
-                            r._field == "man" or
-                            r._field == "batt_type" or
-                            r._field == "techfield" ))
+      const infoQuery = `from(bucket: "telemetry") 
+                        |> range(start: -30d)
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => 
+                          r._field == "totalTmr" or 
+                          r._field == "cycleNum" or
+                          r._field == "man" or
+                          r._field == "batt_type" or
+                          r._field == "techfield" )
+                        |> group(columns: ["_field"])
                         |> top(n:1, columns: ["_time"])
                         |> yield(name: "info")`
 
-      const errorQuery = `import "json"
-
-                          from(bucket: "telemetry") 
-                          |> range(start: -10d)
-                          |> drop(columns: ["_start", "_stop"])
+      const errorQuery = `from(bucket: "telemetry") 
+                          |> range(start: -30d)
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
                           |> sort(columns: ["_time"])
-                          |> map(fn: (r) => ({ r with
-                              jsonStr: string(v: json.encode(v: {"Time":r._time,"Error":r._value,"BMS":r.bms,"CB":r.origin}))}))
                           |> yield(name: "errors")`
 
       console.log('Querying influx for global recap.');
+      console.log(infoQuery)
+      console.log(errorQuery)
       queryApi.queryRows(infoQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
@@ -194,7 +191,13 @@ export default {
       queryApi.queryRows(errorQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          outerScope.items.push(JSON.parse(o.jsonStr))
+          //outerScope.items.push(JSON.parse(o.jsonStr))
+          var datum = {}
+          datum.Time = o._time
+          datum.Error = o._value
+          datum.BMS = o.bms
+          datum.CB = o.origin
+          outerScope.items.push(datum)
         },
         error(error) {
           console.error(error)

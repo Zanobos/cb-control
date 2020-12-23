@@ -8,7 +8,9 @@
       color="green"
       :is-dark="!whiteTheme"
       locale="en"
+      is24hr
       :max-date="new Date()"
+      :popover="{ visibility: 'click' }"
     >
       <template v-slot="{ inputValue, inputEvents }">
         <card>
@@ -39,6 +41,9 @@
                 :value="inputValue.end"
                 v-on="inputEvents.end"
               />
+
+              <base-button id="btnFetch" @click="checkInput" type="primary-nogradient">Apply time range</base-button>
+
             </div>
           </form>
         </card>
@@ -106,10 +111,10 @@ export default {
   },
   watch: {
     range: function(val) {
-      this.checkInput()
+      //this.checkInput()
     },
     selectedBMS: function(val) {
-      this.checkInput()
+      //this.checkInput()
     }
   },
   mounted() {
@@ -126,24 +131,30 @@ export default {
     loadData() {
       var outerScope = this
 
-      const dataQuery = `import "json"
-                         from(bucket: "telemetry") 
+      const dataQuery = `from(bucket: "telemetry") 
                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                         |> drop(columns: ["_start", "_stop"])
-                         |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            (r._field == "voltage" or 
+                         |> filter(fn: (r) => r._measurement == "tlm")
+                         |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                         |> filter(fn: (r) =>
+                            r._field == "voltage" or 
                             r._field == "current" or
-                            r._field == "tempBatt") )
+                            r._field == "tempBatt") 
                          |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
-                         |> map(fn: (r) => ({ r with
-                            jsonStr: string(v: json.encode(v: {"Time":r._time,"Field":r._field,"Value":r._value,"CB":r.origin}))}))
                          |> yield()`
 
-      console.log('Querying influx for charge data.');
+      console.log('Querying influx for charge data.')
+      console.log(dataQuery)
       queryApi.queryRows(dataQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          outerScope.items.push(JSON.parse(o.jsonStr))
+          var datum = {}
+          //datum.Time = Date.parse(o._time)
+          datum.Time = o._time
+          datum.Field = o._field
+          datum.Value = o._value
+          datum.CB = o.origin
+          //outerScope.items.push(JSON.parse(o.jsonStr))
+          outerScope.items.push(datum)
         },
         error(error) {
           console.error(error)
@@ -159,4 +170,11 @@ export default {
 };
 </script>
 <style>
+
+#btnFetch {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  height: 38px;
+}
+
 </style>

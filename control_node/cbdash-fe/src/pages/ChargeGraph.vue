@@ -9,7 +9,9 @@
     color="green"
     :is-dark="!whiteTheme"
     locale="en"
+    is24hr
     :max-date="new Date()"
+    :popover="{ visibility: 'click' }"
   >
     <template v-slot="{ inputValue, inputEvents }">
       <card>
@@ -42,12 +44,16 @@
               :value="inputValue.end"
               v-on="inputEvents.end"
             />
+
+           <base-button id="btnFetch" @click="checkInput" type="primary-nogradient">Apply time range</base-button>
+
           </div>
         </form>
       </card>
     </template>
   </vc-date-picker>
 
+  <!--<div v-if="dataCurrent.length > 0" class="row">-->
   <div v-if="dataCurrent.length > 0" class="row">
     <div class="col-12">
       <card type="chart">
@@ -89,19 +95,19 @@
     </div>
   </div>
 
-  <div v-if="dataTension.length > 0" class="row">
+  <div v-if="dataVoltage.length > 0" class="row">
     <div class="col-12">
       <card type="chart">
         <template slot="header">
           <div class="row">
             <div class="col-sm-6">
               <h5 class="card-category">Battery statistics</h5>
-              <h2 class="card-title">BMS {{selectedBMS}} - Tension (V)</h2>
+              <h2 class="card-title">BMS {{selectedBMS}} - Voltage (V)</h2>
             </div>
           </div>
         </template>
         <div class="chart-area" style="height: 100%">
-          <div class="hello" ref="chartdivtension">
+          <div class="hello" ref="chartdivvoltage">
           </div>
         </div>
       <div class="card-footer text-right">
@@ -142,10 +148,8 @@ import {url, token, org} from '@/influx/env'
 
 import * as am4core from "@amcharts/amcharts4/core";
 import * as am4charts from "@amcharts/amcharts4/charts";
-import am4themes_animated from "@amcharts/amcharts4/themes/animated";
-
-//am4core.useTheme(am4themes_animated);
-
+import am4themes_material from "@amcharts/amcharts4/themes/material";
+import am4themes_dark from "@amcharts/amcharts4/themes/dark";
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
 
 export default {
@@ -154,15 +158,16 @@ export default {
   },
   data() {
     return {
+      timer: null,
       selectedBMS: '',
       perPage: 15,
       currentPage: 1,
       dataCurrent: [],
-      dataTension: [],
+      dataVoltage: [],
       dataTemperature: [],
 
       chartCurrent: null,
-      chartTension: null,
+      chartVoltage: null,
       chartTemperature: null,
 
       whiteTheme: false,
@@ -185,17 +190,19 @@ export default {
   },
   watch: {
     range: function(val) {
-      this.checkInput()
+      //this.checkInput()
     },
     selectedBMS: function(val) {
-      this.checkInput()
+      //this.checkInput()
     }
   },
   mounted() {
     this.$root.$on('whiteTheme', (whiteTheme) => {
-      this.whiteTheme = whiteTheme;
+      this.whiteTheme = whiteTheme
+      this.toggleChartTheme()
     });
     this.whiteTheme = document.body.classList.contains('white-content');
+    this.toggleChartTheme()
   },
   methods: {
     checkInput() {
@@ -204,45 +211,97 @@ export default {
     },
     loadData() {
       var outerScope = this
-
-      const dataQuery = `import "json"
-                         from(bucket: "telemetry") 
+      this.disposeCharts();
+      outerScope.dataCurrent = []
+      outerScope.dataVoltage = []
+      outerScope.dataTemperature = []
+      /*
+      // All in one
+      const queryCurrent = `from(bucket: "telemetry") 
                          |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                         |> drop(columns: ["_start", "_stop"])
-                         |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            (r._field == "voltage" or 
-                            r._field == "current" or
-                            r._field == "tempBatt") )
-                         |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
-                         |> map(fn: (r) => ({ r with
-                            jsonStr: string(v: json.encode(v: {"Time":r._time,"Field":r._field,"Value":r._value,"CB":r.origin}))}))
-                         |> yield()`
+                         |> filter(fn: (r) => r._measurement == "tlm")
+                         |> filter(fn: (r) => r.bms == "123")
+                         |> filter(fn: (r) => (r._field == "voltage" or 
+                             r._field == "current" or
+                             r._field == "tempBatt"))
+                         |> group(columns: ["bms", "_field"])
+                         |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)`
+      */                  
+      const queryCurrent = `from(bucket: "telemetry") 
+                            |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                            |> filter(fn: (r) => r._measurement == "tlm")
+                            |> filter(fn: (r) => r.bms == "123")
+                            |> filter(fn: (r) => (r._field == "current"))
+                            |> group(columns: ["bms"])
+                            |> sort(columns: ["_time"])`                       
 
-      console.log('Querying influx for charge data.');
-      queryApi.queryRows(dataQuery, {
+      console.log('Querying influx for charge data.')
+      console.log(queryCurrent)
+      console.log("START")
+      this.startTimer()
+      queryApi.queryRows(queryCurrent, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          var e = JSON.parse(o.jsonStr)
-          if(o._field == 'current') {
-            outerScope.dataCurrent.push({ date: new Date(e.Time), value: e.Value });
-          }
-          if(o._field == 'voltage') {
-            outerScope.dataTension.push({ date: new Date(e.Time), value: e.Value });
-          }
-          if(o._field == 'tempBatt') {
-            outerScope.dataTemperature.push({ date: new Date(e.Time), value: e.Value });
-          }
+          var datum = { date: Date.parse(o._time), value: o._value }
+          outerScope.dataCurrent.push(datum);
         },
         error(error) {
           console.error(error)
           console.log('CHARGE DATA FETCH ERROR')
         },
         complete() {
+          outerScope.lapTimer()
           console.log('CHARGE DATA FETCH SUCCESS')
-          console.log(outerScope.dataCurrent.length)
+          console.log(outerScope.dataCurrent.length + " current data points")
           outerScope.drawChartCurrent()
-          outerScope.drawChartTension()
+        },
+      })
+
+      const queryVoltage = `from(bucket: "telemetry") 
+                            |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                            |> filter(fn: (r) => r._measurement == "tlm")
+                            |> filter(fn: (r) => r.bms == "123")
+                            |> filter(fn: (r) => (r._field == "voltage"))
+                            |> group(columns: ["bms"])
+                            |> sort(columns: ["_time"])` 
+                                                  
+      queryApi.queryRows(queryVoltage, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+          var datum = { date: Date.parse(o._time), value: o._value }
+          outerScope.dataVoltage.push(datum);
+        },
+        error(error) {
+          console.error(error)
+          console.log('CHARGE DATA FETCH ERROR')
+        },
+        complete() {
+          outerScope.drawChartVoltage()
+          console.log(outerScope.dataCurrent.length + " voltage data points")
+        },
+      })
+
+      const queryTemperature = `from(bucket: "telemetry") 
+                                |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+                                |> filter(fn: (r) => r._measurement == "tlm")
+                                |> filter(fn: (r) => r.bms == "123")
+                                |> filter(fn: (r) => (r._field == "tempBatt"))
+                                |> group(columns: ["bms"])
+                                |> sort(columns: ["_time"])`                       
+
+      queryApi.queryRows(queryTemperature, {
+        next(row, tableMeta) {
+          const o = tableMeta.toObject(row)
+          var datum = { date: Date.parse(o._time), value: o._value }
+          outerScope.dataTemperature.push(datum);
+        },
+        error(error) {
+          console.error(error)
+          console.log('CHARGE DATA FETCH ERROR')
+        },
+        complete() {
           outerScope.drawChartTemperature()
+          console.log(outerScope.dataCurrent.length + " temperature data points")
         },
       })
       
@@ -256,6 +315,10 @@ export default {
 
       let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
       dateAxis.renderer.grid.template.location = 0;
+
+      // this makes the data to be grouped
+      dateAxis.groupData = true;
+      dateAxis.groupCount = 500;
 
       let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
       valueAxis.tooltip.disabled = true;
@@ -273,16 +336,22 @@ export default {
       chart.scrollbarX = scrollbarX;
 
       this.chartCurrent = chart;
+      console.log("DRAWN FINISH")
+      this.lapTimer()
     },
-    drawChartTension() {
-      let chart = am4core.create(this.$refs.chartdivtension, am4charts.XYChart);
+    drawChartVoltage() {
+      let chart = am4core.create(this.$refs.chartdivvoltage, am4charts.XYChart);
 
       chart.paddingRight = 20;
 
-      chart.data = this.dataTension
+      chart.data = this.dataVoltage
 
       let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
       dateAxis.renderer.grid.template.location = 0;
+
+      // this makes the data to be grouped
+      dateAxis.groupData = true;
+      dateAxis.groupCount = 500;
 
       let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
       valueAxis.tooltip.disabled = true;
@@ -299,7 +368,7 @@ export default {
       scrollbarX.series.push(series);
       chart.scrollbarX = scrollbarX;
 
-      this.chartTension = chart;
+      this.chartVoltage = chart;
     },
     drawChartTemperature() {
       let chart = am4core.create(this.$refs.chartdivtemperature, am4charts.XYChart);
@@ -310,6 +379,10 @@ export default {
 
       let dateAxis = chart.xAxes.push(new am4charts.DateAxis());
       dateAxis.renderer.grid.template.location = 0;
+
+      // this makes the data to be grouped
+      dateAxis.groupData = true;
+      dateAxis.groupCount = 500;
 
       let valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
       valueAxis.tooltip.disabled = true;
@@ -328,14 +401,33 @@ export default {
 
       this.chartTemperature = chart;
     },
+    startTimer() {
+      this.timer = new Date()
+      console.log("Timer started")
+    },
+    lapTimer() {
+      var lap = new Date()
+      var timeDiff = lap - this.timer
+      this.timer = lap
+      console.log(timeDiff + "ms elapsed")
+    },
+    toggleChartTheme() {
+      if(this.whiteTheme)
+        am4core.useTheme(am4themes_material);
+      else
+        am4core.useTheme(am4themes_dark);
+    },
+    disposeCharts() {
+      if (this.chartCurrent)
+        this.chartCurrent.dispose();
+      if (this.chartVoltage)
+        this.chartVoltage.dispose();
+      if (this.chartTemperature)
+        this.chartTemperature.dispose();
+    }
   },
   beforeDestroy() {
-    if (this.chartCurrent)
-      this.chartCurrent.dispose();
-    if (this.chartTension)
-      this.chartTension.dispose();
-    if (this.chartTemperature)
-      this.chartTemperature.dispose();
+    this.disposeCharts();
   }
 };
 </script>
@@ -343,5 +435,11 @@ export default {
 .hello {
   width: 100%;
   height: 500px;
+}
+
+#btnFetch {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  height: 38px;
 }
 </style>

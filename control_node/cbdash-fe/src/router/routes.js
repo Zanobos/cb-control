@@ -42,7 +42,7 @@ const routes = [
       }
     ]
   },
-  { path: "*", component: NotFound },
+  { path: "*", redirect: "/recharge-room" },
 ];
 
 /**

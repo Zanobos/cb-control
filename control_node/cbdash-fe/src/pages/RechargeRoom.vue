@@ -25,7 +25,7 @@
                     <!--<p class="card-category">Charger status</p>-->
                     <!--<h1 class="card-text">Good</h1>-->
                     <p class="card-category">Charged</p>
-                    <h1 class="card-text">{{cbData.ah ? cbData.ah+"Ah" : "-"}}</h1>
+                    <h1 class="card-text">{{cbData.bms ? cbData.ah+"Ah" : "-"}}</h1>
                 </div>
               </div>
 
@@ -46,7 +46,7 @@
                 <div class="numbers">
                     <p class="card-category">Battery status</p>
                     <!--<h1 class="card-text">{{(i*73)%90}}% {{ (i%5) == 0 ? '(Refill)' : ''}}</h1>-->
-                    <h1 class="card-text">{{cbData.charge ? cbData.charge + "%" : "-"}}</h1>
+                    <h1 class="card-text">{{cbData.bms ? cbData.charge + "%" : "-"}}</h1>
                 </div>
               </div>
 
@@ -77,8 +77,8 @@ const fluxQuery = `from(bucket: "telemetry")
 
 const fluxQuery = `from(bucket: "telemetry") 
                     |> range(start: -1d)
-                    |> drop(columns: ["_start", "_stop"])
-                    |> filter(fn: (r) => r["_measurement"] == "tlm" and r["_field"] == "IP"  )
+                    |> filter(fn: (r) => r["_measurement"] == "tlm")
+                    |> filter(fn: (r) => r["_field"] == "IP")
                     |> group(columns: ["_value"])
                     |> top(n:1, columns: ["_time"])
                     |> yield()`;
@@ -135,24 +135,17 @@ export default {
         console.log(`Telemetry for cb: ${e.cbs}`)
         var query = `from(bucket: "telemetry") 
                       |> range(start: -1d)
-                      |> drop(columns: ["_start", "_stop", "bms"])
-                      |> filter(fn: (r) => r._measurement == "tlm" and r._field == "chgPercent" and r.origin == "${e.cbs}" )
-                      |> top(n:1, columns: ["_time"])
-                      |> yield(name: "charge")
-
-                     from(bucket: "telemetry") 
-                      |> range(start: -1d)
-                      |> drop(columns: ["_start", "_stop", "bms"])
-                      |> filter(fn: (r) => r._measurement == "tlm" and r._field == "capacity" and r.origin == "${e.cbs}" )
-                      |> top(n:1, columns: ["_time"])
-                      |> yield(name: "ah")`;
+                      |> filter(fn: (r) => r._measurement == "tlm")
+                      |> filter(fn: (r) => r.origin == "${e.cbs}")
+                      |> filter(fn: (r) =>  r._field == "chgPercent" or r._field == "capacity" )
+                      |> group(columns: ["origin", "_field"])
+                      |> top(n:1, columns: ["_time"])`;
 
         queryApi.queryRows(query, {
           next(row, tableMeta) {
             const o = tableMeta.toObject(row)
-            console.log(o)
-            if(o.result == "ah") e.ah = o._value
-            if(o.result == "charge") e.charge = o._value
+            if(o._field == "capacity") e.ah = o._value
+            if(o._field == "chgPercent") e.charge = o._value
           },
           error(error) {
             console.error(error)

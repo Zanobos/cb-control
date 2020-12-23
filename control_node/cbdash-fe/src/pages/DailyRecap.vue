@@ -8,7 +8,9 @@
       color="green"
       :is-dark="!whiteTheme"
       locale="en"
+      is24hr
       :max-date="new Date()"
+      :popover="{ visibility: 'click' }"
     >
       <template v-slot="{ inputValue, inputEvents }">
         <card>
@@ -39,6 +41,9 @@
                 :value="inputValue.end"
                 v-on="inputEvents.end"
               />
+
+              <base-button id="btnFetch" @click="checkInput" type="primary-nogradient">Apply time range</base-button>
+              
             </div>
           </form>
         </card>
@@ -185,10 +190,10 @@ export default {
   },
   watch: {
     range: function(val) {
-      this.checkInput()
+      //this.checkInput()
     },
     selectedBMS: function(val) {
-      this.checkInput()
+      //this.checkInput()
     }
   },
   mounted() {
@@ -203,10 +208,11 @@ export default {
     },
     loadData() {
       var outerScope = this
+      this.loaded = false
+      this.items = []
 
       const dataQuery = `from(bucket: "telemetry") 
                           |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                          |> drop(columns: ["_start", "_stop"])
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
                               (r._field == "totalTmr" or 
                               r._field == "chgTmr" ))
@@ -215,7 +221,6 @@ export default {
 
                           from(bucket: "telemetry") 
                           |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                          |> drop(columns: ["_start", "_stop"])
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
                               (r._field == "tempBatt" or 
                               r._field == "current"
@@ -225,7 +230,6 @@ export default {
 
                           from(bucket: "telemetry") 
                           |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                          |> drop(columns: ["_start", "_stop"])
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
                               (r._field == "tempBatt" or 
                               r._field == "voltage"
@@ -237,7 +241,6 @@ export default {
 
                           from(bucket: "telemetry") 
                           |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                          |> drop(columns: ["_start", "_stop"])
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
                           |> sort(columns: ["_time"])
                           |> map(fn: (r) => ({ r with
@@ -245,6 +248,8 @@ export default {
                           |> yield(name: "errors")`
 
       console.log('Querying influx for daily recap.');
+      console.log(dataQuery)
+      console.log(errorQuery)
       queryApi.queryRows(dataQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
@@ -302,4 +307,11 @@ export default {
 };
 </script>
 <style>
+
+#btnFetch {
+  margin-top: 0px;
+  margin-bottom: 0px;
+  height: 38px;
+}
+
 </style>
