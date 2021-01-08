@@ -138,6 +138,7 @@ export default {
                         |> range(start: -30d)
                         |> filter(fn: (r) => r._measurement == "tlm")
                         |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._value != 0)
                         |> filter(fn: (r) => 
                           r._field == "totalTmr" or 
                           r._field == "cycleNum" or
@@ -151,6 +152,7 @@ export default {
       const errorQuery = `from(bucket: "telemetry") 
                           |> range(start: -30d)
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
+                          |> filter(fn: (r) => r._value != 0)
                           |> sort(columns: ["_time"])
                           |> yield(name: "errors")`
 

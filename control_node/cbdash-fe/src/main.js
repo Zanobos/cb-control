@@ -20,7 +20,7 @@ import router from "./router/index";
 import BlackDashboard from "./plugins/blackDashboard";
 import i18n from "./i18n";
 import './registerServiceWorker'
-import VueApexCharts from 'vue-apexcharts'
+//import VueApexCharts from 'vue-apexcharts'
 import VCalendar from 'v-calendar'
 import Vuex from 'vuex'
 import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
@@ -31,9 +31,9 @@ import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/influx/env'
 
 Vue.use(BlackDashboard);
-Vue.use(VueApexCharts);
+//Vue.use(VueApexCharts);
 Vue.use(VueNumerals);
-Vue.component('apexchart', VueApexCharts);
+//Vue.component('apexchart', VueApexCharts);
 Vue.use(DropdownPlugin)
 Vue.use(PaginationPlugin)
 Vue.use(TablePlugin)
@@ -66,7 +66,7 @@ new Vue({
     fetchBMS: function () {
       const queryApi = new InfluxDB({url, token}).getQueryApi(org)
       const fluxQuery = `from(bucket: "telemetry") 
-                          |> range(start: -1d)
+                          |> range(start: -7d)
                           |> filter(fn: (r) => r["_measurement"] == "tlm")
                           |> filter(fn: (r) => r["_field"] == "ID Batt")
                           |> group(columns: ["_value"])
@@ -74,23 +74,23 @@ new Vue({
                           |> yield()`
       const outerScope = this
       var bms = []
-      console.log('BMS FETCH')
+      //console.log('BMS FETCH')
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          console.log(o)
+          //console.log(o)
           if (!bms.includes(o.bms)) {
             bms.push(o.bms)
           }
         },
         error(error) {
-          console.error(error)
           console.log('BMS FETCH ERROR')
+          console.error(error)
         },
         complete() {
-          console.log(bms)
+          //console.log('BMS FETCH SUCCESS')
+          //console.log(bms)
           outerScope.$store.commit('setBMSs', bms)
-          console.log('BMS FETCH SUCCESS')
         },
       })
     }

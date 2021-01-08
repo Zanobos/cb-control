@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@amcharts/amcharts4": "^4.10.13",
+    "@influxdata/giraffe": "^2.0.0",
     "@influxdata/influxdb-client": "^1.9.0",
+    "@influxdata/influxdb-client-giraffe": "^1.9.0",
     "apexcharts": "^3.22.2",
     "bootstrap": "^4.5.3",
     "bootstrap-vue": "^2.21.1",
@@ -24,6 +26,8 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "numeral": "^2.0.6",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "register-service-worker": "^1.7.1",
     "v-calendar": "^2.1.1",
     "vue": "^2.6.11",

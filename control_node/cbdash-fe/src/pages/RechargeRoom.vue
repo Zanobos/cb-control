@@ -74,7 +74,7 @@ const fluxQuery = `from(bucket: "telemetry")
                     |> top(n:1, columns: ["_time"])
                     |> yield()`;
                     */
-
+/*
 const fluxQuery = `from(bucket: "telemetry") 
                     |> range(start: -1d)
                     |> filter(fn: (r) => r["_measurement"] == "tlm")
@@ -82,6 +82,14 @@ const fluxQuery = `from(bucket: "telemetry")
                     |> group(columns: ["_value"])
                     |> top(n:1, columns: ["_time"])
                     |> yield()`;
+                    */
+
+const fluxQuery = `from(bucket: "telemetry") 
+                    |> range(start: -1m)
+                    |> filter(fn: (r) => r["_measurement"] == "tlm")
+                    |> filter(fn: (r) => r["_field"] == "IP")
+                    |> distinct()
+                    |> yield()`
 
 export default {
     components: {
@@ -108,29 +116,29 @@ export default {
     getCBs() {
       var cbs = []
       var outerScope = this
-      console.log('Querying influx for chargers list.');
+      //console.log('Querying influx for chargers list.');
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          console.log(o)
+          //console.log(o)
           if (!outerScope.cbsList.some(e => e.cbs == o.origin)) {
             outerScope.cbsList.push({cbs: o.origin, bms: o.bms})
           }
         },
         error(error) {
-          console.error(error)
           console.log('CBS FETCH ERROR')
+          console.error(error)
         },
         complete() {
-          console.log('CBS FETCH SUCCESS')
+          //console.log('CBS FETCH SUCCESS')
           outerScope.getCBsStatuses()
         },
       })
     },
     getCBsStatuses() {
       var outerScope = this
-      console.log("CBs list found: ")
-      console.log(this.cbsList)
+      //console.log("CBs list found: ")
+      //console.log(this.cbsList)
       this.cbsList.forEach(e => {
         console.log(`Telemetry for cb: ${e.cbs}`)
         var query = `from(bucket: "telemetry") 
@@ -152,8 +160,8 @@ export default {
             console.log(`${e.cbs} DATA FETCH ERROR`)
           },
           complete() {
-            console.log(`${e.cbs} DATA FETCH SUCCESS`)
-            console.log(outerScope.cbsData)
+            //console.log(`${e.cbs} DATA FETCH SUCCESS`)
+            //console.log(outerScope.cbsData)
             if (!outerScope.cbsData.some(i => i.cbs == e.cbs))
               outerScope.cbsData.push(e)
           },
@@ -169,9 +177,11 @@ export default {
     });
     this.whiteTheme = document.body.classList.contains('white-content');
     this.toggleImages();
+    
     this.interval = setInterval(function () {
       this.getCBs()
     }.bind(this), 5000)
+    
   }
 };
 </script>

@@ -30,8 +30,11 @@
 
 </head>
 <body>
-<div class="wrapper" id="app">
+  <!-- workaround for https://github.com/influxdata/giraffe/issues/293 -->
+<div style="overflow-y: auto; height: 100vh;">
+  <div class="wrapper" id="app">
 
+  </div>
 </div>
 <!-- built files will be auto injected -->
 <!--  Google Maps Plugin    -->

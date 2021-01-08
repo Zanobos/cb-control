@@ -242,6 +242,7 @@ export default {
                           from(bucket: "telemetry") 
                           |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
+                          |> filter(fn: (r) => r._value != 0)
                           |> sort(columns: ["_time"])
                           |> map(fn: (r) => ({ r with
                               jsonStr: string(v: json.encode(v: {"Time":r._time,"Error":r._value,"BMS":r.bms,"CB":r.origin}))}))
@@ -291,7 +292,15 @@ export default {
       queryApi.queryRows(errorQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          outerScope.items.push(JSON.parse(o.jsonStr))
+          var errLine = JSON.parse(o.jsonStr)
+          if(!isNaN(parseInt(errLine._value))) {
+            var errCode = parseInt(errLine._value)
+            errCode = errCode >> 7
+            if(errCode == 1) {
+              errLine._value = "Refill"
+            }
+          }
+          outerScope.items.push(errLine)
         },
         error(error) {
           console.error(error)
