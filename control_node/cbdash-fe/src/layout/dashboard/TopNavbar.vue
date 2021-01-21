@@ -35,12 +35,10 @@
               </button>
             </div>
 
-            <div class="search-bar input-group" @click="toggleAdmin">
-              <button class="btn btn-link" id="switch-theme">
-                <i class="fas fa-user-shield"></i>
-                <!-- show only when admin
-                <span class="badge badge-primary">Admin Mode</span>
-                -->
+            <div class="search-bar input-group" @click="toggleAdminMode">
+              <button class="btn btn-link" id="switch-admin">
+                <i class="fas fa-user-shield"></i>               
+                <span v-if="logged" class="badge badge-primary" style="height: 1.2rem;">Admin Mode ON</span>                
               </button>
             </div>
 
@@ -48,11 +46,31 @@
         </div>
       </collapse-transition>
     </div>
+    <b-modal id="bv-modal-login" title="Admin mode" hide-footer>
+        <base-input alternative
+                    v-model="insertedPassword"
+                    type="password"
+                    placeholder="Password"
+                    addon-left-icon="tim-icons icon-lock-circle"
+                    v-bind:class="{ error: wrongPassword }">
+        </base-input>
+        <div class="text-center">
+            <base-button type="primary-nogradient" class="my-4" @click="login">Login</base-button>
+        </div>
+    </b-modal>
+
+    <b-modal id="bv-modal-logout" title="Admin mode" hide-footer>
+        <div class="text-center">
+            <base-button type="danger-nogradient" class="my-4" @click="logout">Logout</base-button>
+        </div>
+    </b-modal>
   </nav>
 </template>
 <script>
+  import { mapState } from 'vuex'
   import { CollapseTransition } from 'vue2-transitions';
   import Modal from '@/components/Modal';
+  import {password} from '@/config/env'
 
   export default {
     components: {
@@ -66,7 +84,10 @@
       },
       isRTL() {
         return this.$rtl.isRTL;
-      }
+      },
+      ...mapState([
+        'logged'
+      ])
     },
     data() {
       return {
@@ -74,7 +95,10 @@
         activeNotifications: false,
         showMenu: false,
         searchModalVisible: false,
-        searchQuery: ''
+        searchQuery: '',
+        showModal: true,
+        insertedPassword: '',
+        wrongPassword: false,
       };
     },
     methods: {
@@ -101,11 +125,67 @@
         this.whiteTheme = !this.whiteTheme;
         this.$root.$emit('whiteTheme', document.body.classList.contains('white-content'));
       },
-      toggleAdmin() {
-
+      toggleAdminMode() {
+        this.showMenu = false
+        if(!this.logged)
+          this.$bvModal.show('bv-modal-login')
+        else
+          this.$bvModal.show('bv-modal-logout')
+      },
+      login() {
+        console.log(this.wrongPassword)
+        if(this.insertedPassword === password) {
+          this.$bvModal.hide('bv-modal-login')
+          this.insertedPassword = ''
+          this.$store.commit('login')
+        }
+        else {
+          var outerScope = this
+          this.wrongPassword = true
+          setTimeout(function() {
+              outerScope.wrongPassword = false
+            }, 300)
+        }          
+      },
+      logout() {  
+        this.$store.commit('logout')
+        this.$bvModal.hide('bv-modal-logout')
       }
     }
   };
 </script>
 <style>
+
+.modal-body {
+  max-width: 300px;
+  margin: auto;
+}
+
+.white-content .modal-content {
+  background-color: white !important;
+}
+
+.modal-content {
+  background-color: #242729 !important;
+}
+
+.modal-title {
+  color: white !important;
+}
+
+.white-content .modal-title {
+  color: black !important;
+}
+
+.error {
+    position: relative;
+    animation: shake .1s linear;
+    animation-iteration-count: 3;
+}
+
+@keyframes shake {
+    0% { left: -5px; }
+    100% { right: -5px; }
+}
+
 </style>

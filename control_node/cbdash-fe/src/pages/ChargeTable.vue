@@ -41,9 +41,9 @@
                 :value="inputValue.end"
                 v-on="inputEvents.end"
               />
-
-              <base-button id="btnFetch" @click="checkInput" type="primary-nogradient">Apply time range</base-button>
-
+              <div class="form-group col-md-3">
+                <base-button id="btnFetch" :disabled="!canQuery" @click="loadData" type="primary-nogradient">Apply time range</base-button>
+              </div>
             </div>
           </form>
         </card>
@@ -77,7 +77,7 @@
 <script>
 import Card from '@/components/Cards/Card.vue';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
-import {url, token, org} from '@/influx/env'
+import {url, token, org} from '@/config/env'
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
 
 export default {
@@ -107,14 +107,12 @@ export default {
     },
     rows() {
       return this.items.length
-    }
-  },
-  watch: {
-    range: function(val) {
-      //this.checkInput()
     },
-    selectedBMS: function(val) {
-      //this.checkInput()
+    canQuery() {
+      return this.selectedBMS != '' && 
+             this.range.start != '' && 
+             this.range.end != '' &&
+             !this.dateEquals(this.range.start, this.range.end)
     }
   },
   mounted() {
@@ -124,9 +122,9 @@ export default {
     this.whiteTheme = document.body.classList.contains('white-content');
   },
   methods: {
-    checkInput() {
-      if(this.selectedBMS != '' && this.range.start != '' && this.range.end != '')
-        this.loadData()
+    dateEquals(a, b) {
+      // https://stackoverflow.com/questions/4587060/determining-date-equality-in-javascript
+      return (a >= b && a <= b)
     },
     loadData() {
       var outerScope = this
@@ -142,16 +140,18 @@ export default {
                          |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
                          |> yield()`
 
-      console.log('Querying influx for charge data.')
-      console.log(dataQuery)
+      //console.log('Querying influx for charge data.')
+      //console.log(dataQuery)
       queryApi.queryRows(dataQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
           var datum = {}
-          //datum.Time = Date.parse(o._time)
-          datum.Time = o._time
-          datum.Field = o._field
-          datum.Value = o._value
+          //datum.Time = Date.parse(o._time).toGMTString()
+          var date = new Date(o._time)
+          datum.Time = date.toGMTString()
+          //datum.Time = o._time
+          //datum.Field = o._field
+          datum.Current = o._value
           datum.CB = o.origin
           //outerScope.items.push(JSON.parse(o.jsonStr))
           outerScope.items.push(datum)
@@ -161,7 +161,7 @@ export default {
           console.log('CHARGE DATA FETCH ERROR')
         },
         complete() {
-          console.log('CHARGE DATA FETCH SUCCESS')
+          //console.log('CHARGE DATA FETCH SUCCESS')
         },
       })
       
@@ -169,12 +169,4 @@ export default {
   }
 };
 </script>
-<style>
-
-#btnFetch {
-  margin-top: 0px;
-  margin-bottom: 0px;
-  height: 38px;
-}
-
-</style>
+<style src="@/assets/css/input-bar.css" scoped/>

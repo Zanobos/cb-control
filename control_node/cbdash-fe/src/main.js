@@ -28,7 +28,10 @@ import { DropdownPlugin, TablePlugin } from 'bootstrap-vue'
 import { PaginationPlugin } from 'bootstrap-vue'
 import VueNumerals from 'vue-numerals';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
-import {url, token, org} from '@/influx/env'
+import {url, token, org} from '@/config/env'
+import { ModalPlugin } from 'bootstrap-vue'
+
+Vue.use(ModalPlugin)
 
 Vue.use(BlackDashboard);
 //Vue.use(VueApexCharts);
@@ -47,11 +50,18 @@ Vue.use(VCalendar, {
 
 const store = new Vuex.Store({
   state: {
-    bmss: []
+    bmss: [],
+    logged: false
   },
   mutations: {
     setBMSs (state, newBMSs) {
       state.bmss = newBMSs
+    },
+    login(state) {
+      state.logged = true
+    },
+    logout(state) {
+      state.logged = false
     }
   }
 })
@@ -65,13 +75,13 @@ new Vue({
   methods: {
     fetchBMS: function () {
       const queryApi = new InfluxDB({url, token}).getQueryApi(org)
+
       const fluxQuery = `from(bucket: "telemetry") 
-                          |> range(start: -7d)
+                          |> range(start: -10y)
                           |> filter(fn: (r) => r["_measurement"] == "tlm")
-                          |> filter(fn: (r) => r["_field"] == "ID Batt")
-                          |> group(columns: ["_value"])
-                          |> top(n:1, columns: ["_time"])
-                          |> yield()`
+                          |> filter(fn: (r) => r["_field"] == "IP")
+                          |> group(columns: ["bms"])
+                          |> distinct(column: "bms")`
       const outerScope = this
       var bms = []
       //console.log('BMS FETCH')
@@ -79,7 +89,7 @@ new Vue({
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
           //console.log(o)
-          if (!bms.includes(o.bms)) {
+          if (o.bms && !bms.includes(o.bms)) {
             bms.push(o.bms)
           }
         },
@@ -97,9 +107,11 @@ new Vue({
   },
   created: function () {
     this.fetchBMS()
+    
     this.interval = setInterval(function () {
       this.fetchBMS()
     }.bind(this), 5000)
+    
   },
   beforeDestroy: function(){
     clearInterval(this.interval)

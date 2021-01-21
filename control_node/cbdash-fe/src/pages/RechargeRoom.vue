@@ -6,7 +6,13 @@
     <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-4 col-md-6">
       <!-- Add a function in card sass like the one fore the button, use a selector like card-border-$primary where $primary can be any of the one defined in config -->
       <!--<div v-bind:class="['card', 'card-stats', ((i*73)%90) > 15 ? ( ((i*73)%90) > 50 ? 'charged' : 'half-charged') : 'not-charged']" >-->
-      <div v-bind:class="['card', 'card-stats', cbData.charge ? ( cbData.charge > 15 ? ( cbData.charge > 50 ? 'charged' : 'half-charged') : 'not-charged') : '']" >
+      <div v-bind:class="['card', 'card-stats', cbData.bms ? (
+        cbData.charge ? ( 
+          cbData.charge > 15 ? ( 
+            cbData.charge > 50 ? 'charged' : 'half-charged') : 
+            'not-charged') : 
+            '') :
+            '']" >
           <div class="card-body text-center">
 
             <div class="row" style="margin-bottom: 15px">
@@ -24,8 +30,8 @@
                 <div class="numbers">
                     <!--<p class="card-category">Charger status</p>-->
                     <!--<h1 class="card-text">Good</h1>-->
-                    <p class="card-category">Charged</p>
-                    <h1 class="card-text">{{cbData.bms ? cbData.ah+"Ah" : "-"}}</h1>
+                    <p class="card-category">Charge Time</p>
+                    <h1 class="card-text">{{cbData.bms ? formatRemainingChargeTime(cbData.minutesRecharged, cbData.hoursToRecharge*60) : "-"}}</h1>
                 </div>
               </div>
 
@@ -39,7 +45,7 @@
                   width="70px" height="" alt="charger" title="charger" />
                 </div>
                 <!--<h1 class="card-text">#{{i*3%5}}</h1>-->
-                <h1 class="card-text">{{cbData.bms ? "#"+cbData.bms : "-"}}</h1>
+                <h1 class="card-text">{{cbData.bms ? cbData.bms : "-"}}</h1>
               </div>
 
               <div class="col-6">
@@ -61,28 +67,8 @@
 <script>
 const iconsContext = require.context('@/assets/icons/', true, /\.svg$/);
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
-import {url, token, org} from '@/influx/env'
+import {url, token, org} from '@/config/env'
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
-
-/*
-// Shows chargers only if a battery is connected
-const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -1d)
-                    |> drop(columns: ["_start", "_stop"])
-                    |> filter(fn: (r) => r["_measurement"] == "tlm" and r["_field"] == "ID Batt"  )
-                    |> group(columns: ["_value"])
-                    |> top(n:1, columns: ["_time"])
-                    |> yield()`;
-                    */
-/*
-const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -1d)
-                    |> filter(fn: (r) => r["_measurement"] == "tlm")
-                    |> filter(fn: (r) => r["_field"] == "IP")
-                    |> group(columns: ["_value"])
-                    |> top(n:1, columns: ["_time"])
-                    |> yield()`;
-                    */
 
 const fluxQuery = `from(bucket: "telemetry") 
                     |> range(start: -1m)
@@ -113,6 +99,12 @@ export default {
         this.chargerIconSrc = iconsContext('./chargerAlt.svg');
       }
     },
+    formatRemainingChargeTime(minutesCharged, fullChargeInMinutes) {
+      return this.formatMinutes(fullChargeInMinutes - minutesCharged)
+    },
+    formatMinutes(minutes) {
+      return Math.trunc(minutes/60) + 'h '  + (minutes % 60) + 'm'
+    },
     getCBs() {
       var cbs = []
       var outerScope = this
@@ -120,7 +112,6 @@ export default {
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          //console.log(o)
           if (!outerScope.cbsList.some(e => e.cbs == o.origin)) {
             outerScope.cbsList.push({cbs: o.origin, bms: o.bms})
           }
@@ -140,20 +131,25 @@ export default {
       //console.log("CBs list found: ")
       //console.log(this.cbsList)
       this.cbsList.forEach(e => {
-        console.log(`Telemetry for cb: ${e.cbs}`)
+        //console.log(`Telemetry for cb: ${e.cbs}`)
         var query = `from(bucket: "telemetry") 
                       |> range(start: -1d)
                       |> filter(fn: (r) => r._measurement == "tlm")
                       |> filter(fn: (r) => r.origin == "${e.cbs}")
-                      |> filter(fn: (r) =>  r._field == "chgPercent" or r._field == "capacity" )
+                      |> filter(fn: (r) =>  r._field == "chgPercent" or 
+                        r._field == "capacity" or
+                        r._field == "chgTmr" or
+                        r._field == "chgTime" )
                       |> group(columns: ["origin", "_field"])
                       |> top(n:1, columns: ["_time"])`;
 
         queryApi.queryRows(query, {
           next(row, tableMeta) {
             const o = tableMeta.toObject(row)
-            if(o._field == "capacity") e.ah = o._value
             if(o._field == "chgPercent") e.charge = o._value
+            if(o._field == "capacity") e.ah = o._value
+            if(o._field == "chgTmr") e.minutesRecharged = o._value
+            if(o._field == "chgTime") e.hoursToRecharge = o._value
           },
           error(error) {
             console.error(error)
@@ -177,11 +173,9 @@ export default {
     });
     this.whiteTheme = document.body.classList.contains('white-content');
     this.toggleImages();
-    
     this.interval = setInterval(function () {
       this.getCBs()
-    }.bind(this), 5000)
-    
+    }.bind(this), 5000)   
   }
 };
 </script>

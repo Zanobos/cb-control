@@ -1,0 +1,43 @@
+#btnFetch {
+   margin-top: 0px;
+   margin-bottom: 0px;
+   padding: 0px;
+   height: 38px;
+   width: 100%;
+   max-width: 200px;
+}
+  
+.form-row {
+   margin-bottom: -10px;
+}
+
+.form-control, .input-group-text {
+   border-color: #4a5568;
+}
+
+.page-link {
+   padding: .5rem .75rem;
+   line-height: 1.5rem;
+   border-color: #4a5568 !important;
+}
+
+select {
+   background-color: #242729 !important;
+   transition: background-color 0s !important;
+}
+
+.white-content select {
+   background-color: transparent !important;
+}
+
+.white-content .page-link {
+   color: black;
+}
+
+.white-content center {
+   color: black
+}
+
+center {
+   color: white
+}
