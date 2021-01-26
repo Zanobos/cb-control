@@ -251,28 +251,48 @@ export default {
       
       const infoQuery = `from(bucket: "telemetry") 
                         |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
-                        |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            r._field == "chgTmr")
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._field == "chgTmr")
+                        |> group()
                         |> top(n:1, columns: ["_time"])
-                        |> yield(name: "data")
+                        |> yield(name: "timeCharged")
 
                         from(bucket: "telemetry") 
                         |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
-                        |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            (r._field == "tempBatt" or 
-                            r._field == "current"
-                            ))
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._field == "current")
+                        |> group()
                         |> max()
-                        |> yield(name: "max")
+                        |> yield(name: "maxCurrent")
 
                         from(bucket: "telemetry") 
                         |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
-                        |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and 
-                            (r._field == "tempBatt" or 
-                            r._field == "voltage"
-                            ))
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._field == "tempBatt")
+                        |> group()
+                        |> max()
+                        |> yield(name: "maxTempBatt")
+
+                        from(bucket: "telemetry") 
+                        |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._field == "voltage")
+                        |> group()
                         |> min()
-                          |> yield(name: "min")`
+                        |> yield(name: "minVoltage")
+
+                        from(bucket: "telemetry") 
+                        |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
+                        |> filter(fn: (r) => r._measurement == "tlm")
+                        |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+                        |> filter(fn: (r) => r._field == "tempBatt")
+                        |> group()
+                        |> min()
+                        |> yield(name: "minTempBatt")`
 
       const settingsQuery = `from(bucket: "telemetry") 
                             |> range(start: -10y)
@@ -301,6 +321,7 @@ export default {
                           |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
                           |> filter(fn: (r) => r._value != 0)
+                          |> group()
                           |> sort(columns: ["_time"])
                           |> yield(name: "errors")`
 
@@ -315,23 +336,26 @@ export default {
 
           outerScope.cb = o.origin
           switch (o.result) {
-            case 'data':
+            case 'timeCharged':
               if(o._field == 'chgTmr')
                 outerScope.chgTmr = o._value
               break
-            case 'min':
-              if(o._field == 'tempBatt')
-                outerScope.minTempBatt = o._value
+            case 'minVoltage':
               if(o._field == 'voltage')
                 outerScope.minVoltage = o._value
               break
-            case 'max':
+            case 'minTempBatt':
               if(o._field == 'tempBatt')
-                outerScope.maxTempBatt = o._value
+                outerScope.minTempBatt = o._value
+              break        
+            case 'maxCurrent':  
               if(o._field == 'current')
                 outerScope.maxCurrent = o._value
               break
-
+            case 'maxTempBatt':
+              if(o._field == 'tempBatt')
+                outerScope.maxTempBatt = o._value
+              break
           }
         },
         error(error) {
@@ -376,7 +400,7 @@ export default {
       queryApi.queryRows(cyclesQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          if(o._field == 'totalTmr')
+          if(o.numCycle && o._field == 'totalTmr')
             cycleTimes.push(Number(o._value) || 0)
         },
         error(error) {
@@ -436,4 +460,4 @@ export default {
   }
 };
 </script>
-<style src="@/assets/css/input-bar.css" scoped/>
+<style src="@/assets/css/input-bar.css"/>

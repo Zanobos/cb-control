@@ -139,11 +139,36 @@ import { mapState } from 'vuex'
 
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
 
+const maxDataPoints = 1000
+const currentDomain = [-500, 200]
+const voltageDomain = [0, 100]
+const temperatureDomain = [-20, 70]
+
 const style = {
   height: "calc(30vh)",
   margin: "20px",
   "textAlign": "left"
-};
+}
+
+const commonGiraffeConfigs = { 
+  onSetYDomain: () => {},
+  onResetYDomain: () => {},
+  gridColor: '#8e91a1',
+  gridOpacity: 0.5,
+  axisColor: '#8e91a1',
+  axisOpacity: 0.5,
+  legendBackgroundColor: '#1c1f20',
+  legendFont: ''
+}
+
+const baseGiraffeLineLayerConfig = {
+  type: 'line',
+  x: '_time',
+  y: '_value',
+  lineWidth: 1,
+  shadeBelow: true,
+  shadeBelowOpacity: 0.1
+}
 
 export default {
     components: {
@@ -246,6 +271,26 @@ export default {
       // https://stackoverflow.com/questions/4587060/determining-date-equality-in-javascript
       return (a >= b && a <= b)
     },
+    computeAggregationWindowIntervalString(maxDataPoints, startDateTime, endDateTime) {
+      const second = 1000
+      const minute = 60*second
+      const hour = 60*minute
+      const day = 24*hour
+
+      var timeRangeMs = endDateTime - startDateTime
+      var aggregationIntervalMs = Math.floor(timeRangeMs / maxDataPoints)
+
+      if(aggregationIntervalMs < second)
+        return aggregationIntervalMs+'ms'
+      if(aggregationIntervalMs < minute)
+        return Math.floor(aggregationIntervalMs/second)+'s'
+      if(aggregationIntervalMs < hour)
+        return Math.floor(aggregationIntervalMs/minute)+'m'
+      if(aggregationIntervalMs < day)
+        return Math.floor(aggregationIntervalMs/hour)+'h'
+      else
+        return Math.floor(aggregationIntervalMs/day)+'d'
+    },
     renderGiraffePlot(config, error = null){
       if (error){
         // render error message
@@ -265,7 +310,8 @@ export default {
         var labels = []
         var colors = []
 
-        if(table.columns._value.data[0] < threshold) {
+        var dataColumnName = giraffeConfig.layers[0].y
+        if(table.columns[dataColumnName].data[0] < threshold) {
           flagPositive = false
           colors.push('red')
         } else {
@@ -273,7 +319,7 @@ export default {
           colors.push('green')
         }
 
-        table.columns._value.data.forEach(dataPoint => {
+        table.columns[dataColumnName].data.forEach(dataPoint => {
           if(flagPositive && dataPoint < threshold) {
             flagPositive = false
             colors.push('red')
@@ -298,15 +344,20 @@ export default {
 
         return giraffeConfig
     },
-    queryAndRender(query, bms, giraffeConfig, domId, loadedFlagPointer, threshold = null) {
+    queryAndRender(query, bms, giraffeConfig, serieName, domId, loadedFlagPointer, threshold = null) {
       var outerScope = this
       queryToTable(
         queryApi,
         query,
-        Giraffe.newTable,
-        {maxTableRows: 5000}
+        Giraffe.newTable
       ). then(table => {
         console.log("Datapoint fetched: " + table.length)
+
+        if(table.length) {
+          table.columns._time.name = 'Time'
+          table.columns._value.name = serieName
+        }
+        
         if(threshold != null && table.length) {
           giraffeConfig = outerScope.segmentTable(table, giraffeConfig, threshold)
         }
@@ -337,70 +388,54 @@ export default {
 
       // DO NOT SHARE CONFIG OBJECTS
 
-      const valueFormatters = {
-          _time: Giraffe.timeFormatter({
+      const timeFormatter = Giraffe.timeFormatter({
             timeZone: 'UTC',
             format: 'YYYY-MM-DD HH:mm:ss ZZ',
-          }),
-          //_value: (num) => num.toFixed(2)
-        }
+          })
 
       const currentConfig = { 
           layers: [{
-            type: 'line',
-            x: '_time',
-            y: '_value',
-            lineWidth: 1,
-            shadeBelow: true,
-            shadeBelowOpacity: 0.1
+            ...baseGiraffeLineLayerConfig,
+            maxTooltipRows: 120
           }],
-          valueFormatters: valueFormatters,
+          valueFormatters: {
+            _time: timeFormatter,
+            _value: (num) => num.toFixed(1)+' A'
+          },
           legendColumns: ["_time", "_value"],
-          gridColor: '#8e91a1',
-          gridOpacity: 0.5,
-          axisColor: '#8e91a1',
-          axisOpacity: 0.5,
-          legendBackgroundColor: '#1c1f20'
+          yDomain: currentDomain,
+          //xDomain: [this.range.start.getTime(), this.range.end.getTime()],
+          //onSetXDomain: () => {},
+          //onResetXDomain: () => {},
+          ...commonGiraffeConfigs
         };
 
       const voltageConfig = { 
           layers: [{
-            type: 'line',
-            x: '_time',
-            y: '_value',
-            colors: ['orange'],
-            lineWidth: 1,
-            shadeBelow: true,
-            shadeBelowOpacity: 0.1
+            ...baseGiraffeLineLayerConfig,
+            colors: ['orange']
           }],
-          valueFormatters: valueFormatters,
-          gridColor: '#8e91a1',
-          gridOpacity: 0.5,
-          axisColor: '#8e91a1',
-          axisOpacity: 0.5,
-          legendBackgroundColor: '#1c1f20'
+          valueFormatters: {
+            _time: timeFormatter,
+            _value: (num) => num.toFixed(1)+' V'
+          },
+          yDomain: voltageDomain,
+          ...commonGiraffeConfigs
         };
 
       const temperatureConfig = { 
-          layers: [{
-            type: 'line',
-            x: '_time',
-            y: '_value',
-            lineWidth: 1,
-            shadeBelow: true,
-            shadeBelowOpacity: 0.1
-          }],
-          valueFormatters: valueFormatters,
-          gridColor: '#8e91a1',
-          gridOpacity: 0.5,
-          axisColor: '#8e91a1',
-          axisOpacity: 0.5,
-          legendBackgroundColor: '#1c1f20'
+          layers: [ baseGiraffeLineLayerConfig ],
+          valueFormatters: {
+            _time: timeFormatter,
+            _value: (num) => num.toFixed(1)+' °C'
+          },
+          yDomain: temperatureDomain,
+          ...commonGiraffeConfigs
         };   
 
-      this.queryAndRender(this.buildQueryCurrent(), this.selectedBMS, currentConfig, 'chart-current', this.loadedData.current, 0)
-      this.queryAndRender(this.buildQueryVoltage(), this.selectedBMS, voltageConfig, 'chart-voltage', this.loadedData.voltage)
-      this.queryAndRender(this.buildQueryTemperature(), this.selectedBMS, temperatureConfig, 'chart-temperature', this.loadedData.temperature)
+      this.queryAndRender(this.buildQueryCurrent(), this.selectedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
+      this.queryAndRender(this.buildQueryVoltage(), this.selectedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
+      this.queryAndRender(this.buildQueryTemperature(), this.selectedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
 
     },
     getBucket() {
@@ -454,3 +489,14 @@ export default {
 };
 </script>
 <style src="@/assets/css/input-bar.css"/>
+<style>
+
+.white-content .giraffe-tooltip{
+  background-color: white !important
+}
+
+.white-content .giraffe-tooltip-column-header{
+  color: black !important
+}
+
+</style>

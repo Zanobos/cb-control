@@ -43,7 +43,7 @@
     props: {
       title: {
         type: String,
-        default: "Polar"
+        default: "Recharge room"
       },
       backgroundColor: {
         type: String,

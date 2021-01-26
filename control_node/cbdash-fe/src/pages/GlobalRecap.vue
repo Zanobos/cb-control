@@ -156,7 +156,7 @@ export default {
       const cyclesQuery = `from(bucket: "telemetry")
                           |> range(start: -10y)
                           |> filter(fn: (r) => r._measurement == "tlm" )
-                          |> filter(fn: (r) => r.bms == "1" )
+                          |> filter(fn: (r) => r.bms == "${this.selectedBMS}" )
                           |> filter(fn: (r) => r._field == "totalTmr" )
                           |> top(n:1, columns: ["_time"])`                  
 
@@ -180,6 +180,7 @@ export default {
                           |> range(start: -10y)
                           |> filter(fn: (r) => r._measurement == "tlm" and r.bms == "${this.selectedBMS}" and r._field == "BMSerror")
                           |> filter(fn: (r) => r._value != 0)
+                          |> group()
                           |> sort(columns: ["_time"])
                           |> yield(name: "errors")`
 
@@ -192,6 +193,7 @@ export default {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
           if(o._field == 'totalTmr')
+          if(o.numCycle && o._field == 'totalTmr')
             cycleTimes.push(Number(o._value) || 0)
         },
         error(error) {
@@ -252,6 +254,13 @@ export default {
           var datum = {}
           var date = new Date(o._time)
           datum.Time = date.toGMTString()
+          if(!isNaN(parseInt(o._value))) {
+            var errCode = parseInt(o._value)
+            errCode = errCode >> 7
+            if(errCode == 1) {
+              o._value = "Refill"
+            }
+          }
           datum.Error = o._value
           //datum.BMS = o.bms
           datum.CB = o.origin
@@ -271,7 +280,7 @@ export default {
   }
 };
 </script>
-<style src="@/assets/css/input-bar.css" scoped/>
+<style src="@/assets/css/input-bar.css"/>
 <style>
 
 .padded-card {

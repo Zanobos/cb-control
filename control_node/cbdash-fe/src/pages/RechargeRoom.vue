@@ -71,7 +71,7 @@ import {url, token, org} from '@/config/env'
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
 
 const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -1m)
+                    |> range(start: -5m)
                     |> filter(fn: (r) => r["_measurement"] == "tlm")
                     |> filter(fn: (r) => r["_field"] == "IP")
                     |> distinct()
@@ -100,7 +100,9 @@ export default {
       }
     },
     formatRemainingChargeTime(minutesCharged, fullChargeInMinutes) {
-      return this.formatMinutes(fullChargeInMinutes - minutesCharged)
+      var remainingTime = fullChargeInMinutes - minutesCharged
+      if(remainingTime < 0) remainingTime = 0
+      return this.formatMinutes(remainingTime)
     },
     formatMinutes(minutes) {
       return Math.trunc(minutes/60) + 'h '  + (minutes % 60) + 'm'

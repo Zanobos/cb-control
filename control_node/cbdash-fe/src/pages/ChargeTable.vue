@@ -16,13 +16,21 @@
         <card>
           <form @submit.prevent>
             <div class="form-row">
-              <base-input class="col-md-2" placeholder="Bms">
+              <base-input class="col-md-1" placeholder="Bms">
                 <select v-model="selectedBMS" id="inputState" class="form-control">
                   <option
                     v-for="(bms) in getBMSs"
                     :value="bms"
                     :key="bms"
                   >{{bms}}</option>
+                </select>
+              </base-input>
+
+              <base-input class="col-md-2" placeholder="Measure">
+                <select v-model="selectedMeasure" class="form-control">
+                  <option value="Current">Current</option>
+                  <option value="Voltage">Voltage</option>
+                  <option value="Temperature">Temperature</option>
                 </select>
               </base-input>
 
@@ -87,6 +95,7 @@ export default {
   data() {
     return {
       selectedBMS: '',
+      selectedMeasure: 'Current',
       perPage: 15,
       currentPage: 1,
       items: [],
@@ -126,22 +135,29 @@ export default {
       // https://stackoverflow.com/questions/4587060/determining-date-equality-in-javascript
       return (a >= b && a <= b)
     },
+    buildQuery() {
+      var metric = 'current'
+      if(this.selectedMeasure == 'Voltage')
+        metric = 'voltage'
+      else if(this.selectedMeasure == 'Temperature')
+        metric = 'tempBatt'
+
+      return `from(bucket: "telemetry") 
+              |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
+              |> filter(fn: (r) => r._measurement == "tlm")
+              |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
+              |> filter(fn: (r) => r._field == "${metric}") 
+              |> group()
+              |> sort(columns: ["_time"])`
+    },
     loadData() {
       var outerScope = this
+      this.items = []
 
-      const dataQuery = `from(bucket: "telemetry") 
-                         |> range(start: ${this.range.start.toISOString()}, stop: ${this.range.end.toISOString()})
-                         |> filter(fn: (r) => r._measurement == "tlm")
-                         |> filter(fn: (r) => r.bms == "${this.selectedBMS}")
-                         |> filter(fn: (r) =>
-                            r._field == "voltage" or 
-                            r._field == "current" or
-                            r._field == "tempBatt") 
-                         |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
-                         |> yield()`
+      const dataQuery = this.buildQuery()
 
-      //console.log('Querying influx for charge data.')
-      //console.log(dataQuery)
+      console.log('Querying influx for charge data.')
+      console.log(dataQuery)
       queryApi.queryRows(dataQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
@@ -151,7 +167,12 @@ export default {
           datum.Time = date.toGMTString()
           //datum.Time = o._time
           //datum.Field = o._field
-          datum.Current = o._value
+          if(outerScope.selectedMeasure == 'Current')
+            datum.Current = o._value.toFixed(1)
+          else if(outerScope.selectedMeasure == 'Voltage')
+            datum.Voltage = o._value.toFixed(1)
+          else if(outerScope.selectedMeasure == 'Temperature')
+            datum.Temperature = o._value.toFixed(1)
           datum.CB = o.origin
           //outerScope.items.push(JSON.parse(o.jsonStr))
           outerScope.items.push(datum)
@@ -169,4 +190,4 @@ export default {
   }
 };
 </script>
-<style src="@/assets/css/input-bar.css" scoped/>
+<style src="@/assets/css/input-bar.css"/>
