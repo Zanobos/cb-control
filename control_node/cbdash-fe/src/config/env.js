@@ -1,5 +1,6 @@
 /** InfluxDB v2 URL */
-const url = process.env['INFLUX_URL'] || 'http://109.238.125.105:8086'
+//const url = process.env['INFLUX_URL'] || 'http://109.238.125.105:8086'
+const url = process.env['INFLUX_URL'] || 'http://localhost:8086'
 /** InfluxDB authorization token */
 const token = process.env['INFLUX_TOKEN'] || 'JTZDkRGHqj9YNB-dBypjBV9Ei9HQq-RumCA9yZrdRSM7M39j9-B0cplpbyjbMzzVphRPt-QZv3LGGTS3gbco9w=='
 /** Organization within InfluxDB  */

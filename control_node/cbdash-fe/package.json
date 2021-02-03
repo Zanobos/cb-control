@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@amcharts/amcharts4": "^4.10.13",
+    "@fontsource/poppins": "^4.1.0",
+    "@fortawesome/fontawesome-free": "^5.15.2",
     "@influxdata/giraffe": "^2.0.0",
     "@influxdata/influxdb-client": "^1.9.0",
     "@influxdata/influxdb-client-giraffe": "^1.9.0",

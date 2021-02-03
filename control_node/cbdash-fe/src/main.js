@@ -19,7 +19,7 @@ import App from "./App";
 import router from "./router/index";
 import BlackDashboard from "./plugins/blackDashboard";
 import i18n from "./i18n";
-import './registerServiceWorker'
+//import './registerServiceWorker'
 //import VueApexCharts from 'vue-apexcharts'
 import VCalendar from 'v-calendar'
 import Vuex from 'vuex'
@@ -30,6 +30,14 @@ import VueNumerals from 'vue-numerals';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
 import { ModalPlugin } from 'bootstrap-vue'
+
+import '@fontsource/poppins/200.css'
+import '@fontsource/poppins/300.css'
+import '@fontsource/poppins/400.css'
+import '@fontsource/poppins/600.css'
+import '@fontsource/poppins/700.css'
+import '@fontsource/poppins/800.css'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 Vue.use(ModalPlugin)
 
