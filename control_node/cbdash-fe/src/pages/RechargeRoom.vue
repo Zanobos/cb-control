@@ -125,7 +125,7 @@ export default {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
           console.log("CB found ", o)
-          if(o.origin && o.bms)
+          //if(o.origin && o.bms)
             newCBsList.push({cbs: o.origin, bms: o.bms})
         },
         error(error) {
