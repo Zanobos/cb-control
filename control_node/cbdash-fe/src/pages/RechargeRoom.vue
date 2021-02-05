@@ -69,14 +69,23 @@ const iconsContext = require.context('@/assets/icons/', true, /\.svg$/);
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
-
+/*
 const fluxQuery = `from(bucket: "telemetry") 
                     |> range(start: -5m)
                     |> filter(fn: (r) => r["_measurement"] == "tlm")
                     |> filter(fn: (r) => r["_field"] == "IP")
                     |> distinct()
                     |> yield()`
-
+*/
+const fluxQuery = `from(bucket: "telemetry") 
+                    |> range(start: -5m)
+                    |> filter(fn: (r) => r["_measurement"] == "tlm")
+                    |> filter(fn: (r) => r["_field"] == "IP")
+                    |> group(columns: ["bms", "origin"])
+                    |> top(n:1, columns: ["_time"])
+                    |> distinct()
+                    |> yield()`
+                
 export default {
     components: {
   },
@@ -86,6 +95,7 @@ export default {
       batteryIconSrc: iconsContext('./batteryAlt.svg'),
       chargerIconSrc: iconsContext('./chargerAlt.svg'),
       cbsList: [],
+      // A map would be ideal but maps are not currently supported by v-for https://github.com/vuejs/vue/issues/6644
       cbsData: []
     };
   },
@@ -108,15 +118,15 @@ export default {
       return Math.trunc(minutes/60) + 'h '  + (minutes % 60) + 'm'
     },
     getCBs() {
-      var cbs = []
-      var outerScope = this
-      //console.log('Querying influx for chargers list.');
+      const outerScope = this
+      const newCBsList = []
+      console.log('Fetching CBs.');
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          if (!outerScope.cbsList.some(e => e.cbs == o.origin)) {
-            outerScope.cbsList.push({cbs: o.origin, bms: o.bms})
-          }
+          console.log("CB found ", o)
+          if(o.origin && o.bms)
+            newCBsList.push({cbs: o.origin, bms: o.bms})
         },
         error(error) {
           console.log('CBS FETCH ERROR')
@@ -124,20 +134,38 @@ export default {
         },
         complete() {
           //console.log('CBS FETCH SUCCESS')
+          outerScope.cbsList = newCBsList
           outerScope.getCBsStatuses()
         },
       })
     },
     getCBsStatuses() {
-      var outerScope = this
-      //console.log("CBs list found: ")
-      //console.log(this.cbsList)
+      var outerScope = this 
+      var promises = []
+
+      //console.log("CBs list found: ", this.cbsList)
+      //console.log("CBs data: ", this.cbsData)
+
       this.cbsList.forEach(e => {
         //console.log(`Telemetry for cb: ${e.cbs}`)
+        promises.push(outerScope.getStatusPromise(e))       
+      })
+
+      Promise.allSettled(promises).then((results) => {
+        const resolved = results.filter(r => r.status === "fulfilled");
+        const values = resolved.map(r => r.value)
+        values.sort( (a, b) => a.cbs.localeCompare(b.cbs));
+        outerScope.cbsData = values
+      });
+
+    },
+    getStatusPromise(cbsListElement) {
+      return new Promise((resolve, reject) => {
+        var outerscope = {resolve, reject}
         var query = `from(bucket: "telemetry") 
                       |> range(start: -1d)
                       |> filter(fn: (r) => r._measurement == "tlm")
-                      |> filter(fn: (r) => r.origin == "${e.cbs}")
+                      |> filter(fn: (r) => r.origin == "${cbsListElement.cbs}")
                       |> filter(fn: (r) =>  r._field == "chgPercent" or 
                         r._field == "capacity" or
                         r._field == "chgTmr" or
@@ -148,23 +176,24 @@ export default {
         queryApi.queryRows(query, {
           next(row, tableMeta) {
             const o = tableMeta.toObject(row)
-            if(o._field == "chgPercent") e.charge = o._value
-            if(o._field == "capacity") e.ah = o._value
-            if(o._field == "chgTmr") e.minutesRecharged = o._value
-            if(o._field == "chgTime") e.hoursToRecharge = o._value
+            if(o._field == "chgPercent") cbsListElement.charge = o._value
+            if(o._field == "capacity") cbsListElement.ah = o._value
+            if(o._field == "chgTmr") cbsListElement.minutesRecharged = o._value
+            if(o._field == "chgTime") cbsListElement.hoursToRecharge = o._value
           },
           error(error) {
+            console.log(`${cbsListElement.cbs} DATA FETCH ERROR`)
             console.error(error)
-            console.log(`${e.cbs} DATA FETCH ERROR`)
+            outerscope.reject(new Error(error))
           },
           complete() {
             //console.log(`${e.cbs} DATA FETCH SUCCESS`)
-            //console.log(outerScope.cbsData)
-            if (!outerScope.cbsData.some(i => i.cbs == e.cbs))
-              outerScope.cbsData.push(e)
+            console.log(`Telemetry for cb: ${cbsListElement.cbs}`)
+            console.log(cbsListElement)
+            outerscope.resolve(cbsListElement)
           },
         })
-      })
+      });
     }
   },
   mounted() {
