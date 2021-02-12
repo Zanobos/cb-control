@@ -133,7 +133,6 @@
           this.$bvModal.show('bv-modal-logout')
       },
       login() {
-        console.log(this.wrongPassword)
         if(this.insertedPassword === password) {
           this.$bvModal.hide('bv-modal-login')
           this.insertedPassword = ''

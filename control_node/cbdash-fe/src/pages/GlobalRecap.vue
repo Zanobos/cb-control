@@ -253,7 +253,8 @@ export default {
           //outerScope.items.push(JSON.parse(o.jsonStr))
           var datum = {}
           var date = new Date(o._time)
-          datum.Time = date.toGMTString()
+          //datum.Time = date.toGMTString()
+          datum.Time = date.toLocaleString()
           if(!isNaN(parseInt(o._value))) {
             var errCode = parseInt(o._value)
             errCode = errCode >> 7

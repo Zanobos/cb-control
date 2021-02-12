@@ -1,58 +1,74 @@
 <template>
 
 <div>
-  <vc-date-picker
-    v-model="range"
-    mode="dateTime"
-    :masks="masks"
-    is-range
-    color="green"
-    :is-dark="!whiteTheme"
-    locale="en"
-    is24hr
-    :max-date="new Date()"
-    :popover="{ visibility: 'click' }"
-  >
-    <template v-slot="{ inputValue, inputEvents }">
-      <card>
-        <form @submit.prevent>
-          <div class="form-row">
+  
+  <card>
+    <form @submit.prevent>
+      <div class="form-row">
 
-            <base-input class="col-md-2" placeholder="Bms">
-              <select v-model="selectedBMS" id="inputState" class="form-control">
-                <option
-                  v-for="(bms) in getBMSs"
-                  :value="bms"
-                  :key="bms"
-                >{{bms}}</option>
-              </select>             
-            </base-input>
+        <base-input class="col-md-2" placeholder="Bms">
+          <select v-model="selectedBMS" id="inputState" class="form-control">
+            <option
+              v-for="(bms) in getBMSs"
+              :value="bms"
+              :key="bms"
+            >{{bms}}</option>
+          </select>             
+        </base-input>
 
-            <base-input
-              class="col-md-3"
-              addon-left-icon="tim-icons icon-calendar-60"
-              placeholder="from"
-              :value="inputValue.start"
-              v-on="inputEvents.start"
-            />
+        <div class="col-md-3">
+          <vc-date-picker
+            v-model="range.start"
+            mode="dateTime"
+            color="green"
+            :is-dark="!whiteTheme"
+            locale="en-GB"
+            is24hr
+            :max-date="new Date()"
+            :popover="{ visibility: 'click' }"
+          >
+            <template v-slot="{ inputValue, inputEvents }">
+              <date-input
+                addon-left-icon="tim-icons icon-calendar-60"
+                placeholder="from"
+                :value="inputValue"
+                v-on="inputEvents"
+              />
+            </template>
+          </vc-date-picker>
+        
+        </div>
+        <div class="col-md-3">
 
-            <base-input
-              class="col-md-3"
-              addon-left-icon="tim-icons icon-calendar-60"
-              placeholder="to"
-              :value="inputValue.end"
-              v-on="inputEvents.end"
-            />
+          <vc-date-picker
+            v-model="range.end"
+            mode="dateTime"
+            color="green"
+            :is-dark="!whiteTheme"
+            locale="en-GB"
+            is24hr
+            :min-date="range.start"
+            :max-date="new Date()"
+            :popover="{ visibility: 'click' }"
+          >
+            <template v-slot="{ inputValue, inputEvents }">
+              <date-input
+                addon-left-icon="tim-icons icon-calendar-60"
+                placeholder="to"
+                :value="inputValue"
+                v-on="inputEvents"
+              />
+            </template>
+          </vc-date-picker>
+        </div>
+        
+        <div class="form-group col-md-3">
+          <base-button id="btnFetch" :disabled="!canQuery" @click="loadData" type="primary-nogradient">Apply time range</base-button>
+        </div>
 
-            <div class="form-group col-md-3">
-              <base-button id="btnFetch" :disabled="!canQuery" @click="loadData" type="primary-nogradient">Apply time range</base-button>
-            </div>
-
-          </div>
-        </form>
-      </card>
-    </template>
-  </vc-date-picker>
+      </div>
+    </form>
+  </card>
 
   <div v-show="loadedData.current.loadedFlag" class="row">
     <div class="col-12">
@@ -174,8 +190,8 @@ const baseGiraffeLineLayerConfig = {
 // DO NOT SHARE CONFIG OBJECTS
 
 const timeFormatter = Giraffe.timeFormatter({
-      timeZone: 'UTC',
-      format: 'YYYY-MM-DD HH:mm:ss ZZ',
+      timeZone: 'Europe/Rome',
+      format: 'DD/MM/YYYY HH:mm:ss',
     })
 
 const currentConfig = { 
@@ -234,12 +250,10 @@ export default {
         start: '',
         end: '',
       },
+      date: '',
       currentRange: {},
       voltageRange: {},
-      temperatureRange: {},
-      masks: {
-        input: 'YYYY-MM-DD h:mm A',
-      },
+      temperatureRange: {}
     };
   },
   computed: {

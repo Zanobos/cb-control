@@ -2,10 +2,9 @@
   <div>
     <vc-date-picker 
       v-model="startDate"
-      :masks="masks"
       color="green"
       :is-dark="!whiteTheme"
-      locale="en"
+      locale="en-GB"
       :max-date="new Date()"
       :popover="{ visibility: 'click' }"
     >
@@ -23,7 +22,7 @@
                 </select>
               </base-input>
 
-              <base-input
+              <date-input
                 class="col-md-3"
                 addon-left-icon="tim-icons icon-calendar-60"
                 placeholder="day"
@@ -189,10 +188,7 @@ export default {
 
       whiteTheme: false,
       startDate: '',
-      endDate: '',
-      masks: {
-        input: 'YYYY-MM-DD',
-      },
+      endDate: ''
     };
   },
   computed: {
@@ -431,7 +427,8 @@ export default {
           //outerScope.items.push(JSON.parse(o.jsonStr))
           var datum = {}
           var date = new Date(o._time)
-          datum.Time = date.toGMTString()
+          //datum.Time = date.toGMTString()
+          datum.Time = date.toLocaleString()
           if(!isNaN(parseInt(o._value))) {
             var errCode = parseInt(o._value)
             errCode = errCode >> 7

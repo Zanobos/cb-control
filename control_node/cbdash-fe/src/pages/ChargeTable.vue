@@ -1,62 +1,79 @@
 <template>
   <div>
-    <vc-date-picker
-      v-model="range"
-      mode="dateTime"
-      :masks="masks"
-      is-range
-      color="green"
-      :is-dark="!whiteTheme"
-      locale="en"
-      is24hr
-      :max-date="new Date()"
-      :popover="{ visibility: 'click' }"
-    >
-      <template v-slot="{ inputValue, inputEvents }">
-        <card>
-          <form @submit.prevent>
-            <div class="form-row">
-              <base-input class="col-md-1" placeholder="Bms">
-                <select v-model="selectedBMS" id="inputState" class="form-control">
-                  <option
-                    v-for="(bms) in getBMSs"
-                    :value="bms"
-                    :key="bms"
-                  >{{bms}}</option>
-                </select>
-              </base-input>
 
-              <base-input class="col-md-2" placeholder="Measure">
-                <select v-model="selectedMeasure" class="form-control">
-                  <option value="Current">Current</option>
-                  <option value="Voltage">Voltage</option>
-                  <option value="Temperature">Temperature</option>
-                </select>
-              </base-input>
+    <card>
+      <form @submit.prevent>
+        <div class="form-row">
+          <base-input class="col-md-1" placeholder="Bms">
+            <select v-model="selectedBMS" id="inputState" class="form-control">
+              <option
+                v-for="(bms) in getBMSs"
+                :value="bms"
+                :key="bms"
+              >{{bms}}</option>
+            </select>
+          </base-input>
 
-              <base-input
-                class="col-md-3"
-                addon-left-icon="tim-icons icon-calendar-60"
-                placeholder="from"
-                :value="inputValue.start"
-                v-on="inputEvents.start"
-              />
+          <base-input class="col-md-2" placeholder="Measure">
+            <select v-model="selectedMeasure" class="form-control">
+              <option value="Current">Current</option>
+              <option value="Voltage">Voltage</option>
+              <option value="Temperature">Temperature</option>
+            </select>
+          </base-input>
 
-              <base-input
-                class="col-md-3"
-                addon-left-icon="tim-icons icon-calendar-60"
-                placeholder="to"
-                :value="inputValue.end"
-                v-on="inputEvents.end"
-              />
-              <div class="form-group col-md-3">
-                <base-button id="btnFetch" :disabled="!canQuery" @click="loadData" type="primary-nogradient">Apply time range</base-button>
-              </div>
-            </div>
-          </form>
-        </card>
-      </template>
-    </vc-date-picker>
+          <div class="col-md-3">
+            <vc-date-picker
+              v-model="range.start"
+              mode="dateTime"
+              color="green"
+              :is-dark="!whiteTheme"
+              locale="en-GB"
+              is24hr
+              :max-date="new Date()"
+              :popover="{ visibility: 'click' }"
+            >
+              <template v-slot="{ inputValue, inputEvents }">
+                <date-input
+                  addon-left-icon="tim-icons icon-calendar-60"
+                  placeholder="from"
+                  :value="inputValue"
+                  v-on="inputEvents"
+                />
+              </template>
+            </vc-date-picker>          
+          </div>
+
+          <div class="col-md-3">
+            <vc-date-picker
+              v-model="range.end"
+              mode="dateTime"
+              color="green"
+              :is-dark="!whiteTheme"
+              locale="en-GB"
+              is24hr
+              :min-date="range.start"
+              :max-date="new Date()"
+              :popover="{ visibility: 'click' }"
+            >
+              <template v-slot="{ inputValue, inputEvents }">
+                <date-input
+                  addon-left-icon="tim-icons icon-calendar-60"
+                  placeholder="to"
+                  :value="inputValue"
+                  v-on="inputEvents"
+                />
+              </template>
+            </vc-date-picker>
+          </div>
+
+          <div class="form-group col-md-3">
+            <base-button id="btnFetch" :disabled="!canQuery" @click="loadData" type="primary-nogradient">Apply time range</base-button>
+          </div>
+        </div>
+      </form>
+    </card>
+
     <div v-if="items.length > 0" class="row">
       <div class="col-12">
         <card :title="'Charge data for bms ' + selectedBMS">
@@ -104,10 +121,7 @@ export default {
       range: {
         start: '',
         end: '',
-      },
-      masks: {
-        input: 'YYYY-MM-DD h:mm A',
-      },
+      }
     };
   },
   computed: {
@@ -164,7 +178,8 @@ export default {
           var datum = {}
           //datum.Time = Date.parse(o._time).toGMTString()
           var date = new Date(o._time)
-          datum.Time = date.toGMTString()
+          //datum.Time = date.toGMTString()
+          datum.Time = date.toLocaleString()
           //datum.Time = o._time
           //datum.Field = o._field
           if(outerScope.selectedMeasure == 'Current')
