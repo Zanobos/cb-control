@@ -87,7 +87,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQueryCurrent(), 'current')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('current', currentRange), 'current')">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -110,7 +110,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQueryVoltage(), 'voltage')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('voltage', currentRange), 'voltage')">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -133,7 +133,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQueryTemperature(), 'temperature')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('temperature', currentRange), 'temperature')">Export CSV</base-button>
       </div>
       </card>
     </div>
