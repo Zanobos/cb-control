@@ -172,10 +172,12 @@ const commonGiraffeConfigs = {
   onResetYDomain: () => {},
   gridColor: '#8e91a1',
   gridOpacity: 0.5,
+  //axisColor: '#8e91a1',
   axisColor: '#8e91a1',
   axisOpacity: 0.5,
   legendBackgroundColor: '#1c1f20',
-  legendFont: ''
+  legendFont: '',
+  tickFont: '15px sans-serif'
 }
 
 const baseGiraffeLineLayerConfig = {
@@ -245,7 +247,6 @@ export default {
         voltage: { loadedFlag: false, loadedBMS: '' },
         temperature: { loadedFlag: false, loadedBMS: '' }
       },
-      whiteTheme: false,
       range: {
         start: '',
         end: '',
@@ -270,16 +271,17 @@ export default {
              !this.dateEquals(this.range.start, this.range.end)
     },
     ...mapState([
-      'logged'
+      'logged',
+      'whiteTheme'
     ])
   },
+  watch: {
+    whiteTheme(newValue, oldValue) {
+      this.toggleChartTheme(newValue)
+    }
+  },
   mounted() {
-    this.$root.$on('whiteTheme', (whiteTheme) => {
-      this.whiteTheme = whiteTheme
-      this.toggleChartTheme()
-    });
-    this.whiteTheme = document.body.classList.contains('white-content');
-    this.toggleChartTheme()
+    this.initializeChartTheme()
   },
   methods: {
     queryToCsv(query, fileName) {
@@ -550,7 +552,42 @@ export default {
       this.timer = lap
       console.log(timeDiff + "ms elapsed")
     },
-    toggleChartTheme() {
+    initializeChartTheme(isWhite) {
+      if(this.whiteTheme) {
+        currentConfig.tickFontColor = 'black'
+        voltageConfig.tickFontColor = 'black'
+        temperatureConfig.tickFontColor = 'black'
+      } else {
+        currentConfig.tickFontColor = 'white'
+        voltageConfig.tickFontColor = 'white'
+        temperatureConfig.tickFontColor = 'white'
+      }
+    },
+    toggleChartTheme(isWhite) {
+      var textColor = isWhite ? 'black' : 'white'
+
+      if(this.loadedData.current.loadedFlag) {
+        currentConfig.tickFontColor = textColor
+        ReactDOM.render(       
+              this.renderGiraffePlot(currentConfig),
+              document.getElementById('chart-current')
+          );
+      }
+      if(this.loadedData.voltage.loadedFlag) {
+        voltageConfig.tickFontColor = textColor
+        ReactDOM.render(       
+              this.renderGiraffePlot(voltageConfig),
+              document.getElementById('chart-voltage')
+          );
+      }
+      if(this.loadedData.temperature.loadedFlag) {
+        temperatureConfig.tickFontColor = textColor
+        ReactDOM.render(       
+              this.renderGiraffePlot(temperatureConfig),
+              document.getElementById('chart-temperature')
+          );
+      }
+      
     },
     disposeCharts() {
     }

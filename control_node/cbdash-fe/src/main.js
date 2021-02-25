@@ -40,7 +40,6 @@ import '@fontsource/poppins/800.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 
 Vue.use(ModalPlugin)
-
 Vue.use(BlackDashboard);
 //Vue.use(VueApexCharts);
 Vue.use(VueNumerals);
@@ -59,11 +58,15 @@ Vue.use(VCalendar, {
 const store = new Vuex.Store({
   state: {
     bmss: [],
-    logged: false
+    logged: false,
+    whiteTheme: false
   },
   mutations: {
-    setBMSs (state, newBMSs) {
+    setBMSs(state, newBMSs) {
       state.bmss = newBMSs
+    },
+    toggleWhiteTheme(state, whiteTheme) {
+      state.whiteTheme = whiteTheme
     },
     login(state) {
       state.logged = true

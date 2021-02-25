@@ -73,6 +73,7 @@
   </div>
 </template>
 <script>
+import { mapState } from 'vuex'
 import Card from '@/components/Cards/Card.vue';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
@@ -90,7 +91,6 @@ export default {
       settings: {},
       loaded: false,
       selectedBMS: '',
-      whiteTheme: false,
       numCycles: '',
       totalTmr: '',
 
@@ -125,17 +125,16 @@ export default {
         { key: 'Type', value: this.settings.batt_type },
         { key: 'Capacity', value: this.settings.cNominal }
       ]
-    }
+    },
+    ...mapState([
+      'logged',
+      'whiteTheme'
+    ])
   },
   watch: {
     selectedBMS: function(val) {
       this.loadData();
     }
-  },
-  mounted() {
-    this.$root.$on('whiteTheme', (whiteTheme) => {
-      this.whiteTheme = whiteTheme;
-    });
   },
   methods: {
     formatMinutes(minutes) {

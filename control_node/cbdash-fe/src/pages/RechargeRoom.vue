@@ -3,7 +3,7 @@
 
     <!--<div v-for="i in 15" :key="i" class="col-lg-4 col-md-6">-->
       
-    <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-4 col-md-6">
+    <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-6 col-md-6">
       <!-- Add a function in card sass like the one fore the button, use a selector like card-border-$primary where $primary can be any of the one defined in config -->
       <!--<div v-bind:class="['card', 'card-stats', ((i*73)%90) > 15 ? ( ((i*73)%90) > 50 ? 'charged' : 'half-charged') : 'not-charged']" >-->
       <div v-bind:class="['card', 'card-stats', cbData.bms ? (
@@ -65,6 +65,7 @@
   </div>
 </template>
 <script>
+import { mapState } from 'vuex'
 const iconsContext = require.context('@/assets/icons/', true, /\.svg$/);
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
@@ -87,17 +88,27 @@ const fluxQuery = `from(bucket: "telemetry")
                     |> yield()`
                 
 export default {
-    components: {
+  components: {
   },
   data() {
     return {
-      whiteTheme: false,
       batteryIconSrc: iconsContext('./batteryAlt.svg'),
       chargerIconSrc: iconsContext('./chargerAlt.svg'),
       cbsList: [],
       // A map would be ideal but maps are not currently supported by v-for https://github.com/vuejs/vue/issues/6644
       cbsData: []
     };
+  },
+  computed: {
+    ...mapState([
+      'logged',
+      'whiteTheme'
+    ])
+  },
+  watch: {
+    whiteTheme(newValue, oldValue) {
+      this.toggleImages()
+    }
   },
   methods: {
     toggleImages() {
@@ -120,11 +131,11 @@ export default {
     getCBs() {
       const outerScope = this
       const newCBsList = []
-      console.log('Fetching CBs.');
+      //console.log('Fetching CBs.');
       queryApi.queryRows(fluxQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
-          console.log("CB found ", o)
+          //console.log("CB found ", o)
           //if(o.origin && o.bms)
             newCBsList.push({cbs: o.origin, bms: o.bms})
         },
@@ -188,8 +199,8 @@ export default {
           },
           complete() {
             //console.log(`${e.cbs} DATA FETCH SUCCESS`)
-            console.log(`Telemetry for cb: ${cbsListElement.cbs}`)
-            console.log(cbsListElement)
+            //console.log(`Telemetry for cb: ${cbsListElement.cbs}`)
+            //console.log(cbsListElement)
             outerscope.resolve(cbsListElement)
           },
         })
@@ -198,11 +209,6 @@ export default {
   },
   mounted() {
     this.getCBs();
-    this.$root.$on('whiteTheme', (whiteTheme) => {
-      this.whiteTheme = whiteTheme;
-      this.toggleImages();
-    });
-    this.whiteTheme = document.body.classList.contains('white-content');
     this.toggleImages();
     this.interval = setInterval(function () {
       this.getCBs()

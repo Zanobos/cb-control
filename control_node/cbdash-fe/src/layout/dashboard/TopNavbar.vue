@@ -86,12 +86,12 @@
         return this.$rtl.isRTL;
       },
       ...mapState([
-        'logged'
+        'logged',
+        'whiteTheme'
       ])
     },
     data() {
       return {
-        whiteTheme: false,
         activeNotifications: false,
         showMenu: false,
         searchModalVisible: false,
@@ -121,9 +121,8 @@
         this.showMenu = !this.showMenu;
       },
       toggleTheme() {
-        document.body.classList.toggle('white-content');
-        this.whiteTheme = !this.whiteTheme;
-        this.$root.$emit('whiteTheme', document.body.classList.contains('white-content'));
+        document.body.classList.toggle('white-content')
+        this.$store.commit('toggleWhiteTheme', document.body.classList.contains('white-content'))
       },
       toggleAdminMode() {
         this.showMenu = false

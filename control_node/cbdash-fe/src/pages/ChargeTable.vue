@@ -100,6 +100,7 @@
   </div>
 </template>
 <script>
+import { mapState } from 'vuex'
 import Card from '@/components/Cards/Card.vue';
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
@@ -116,8 +117,6 @@ export default {
       perPage: 15,
       currentPage: 1,
       items: [],
-
-      whiteTheme: false,
       range: {
         start: '',
         end: '',
@@ -136,13 +135,11 @@ export default {
              this.range.start != '' && 
              this.range.end != '' &&
              !this.dateEquals(this.range.start, this.range.end)
-    }
-  },
-  mounted() {
-    this.$root.$on('whiteTheme', (whiteTheme) => {
-      this.whiteTheme = whiteTheme;
-    });
-    this.whiteTheme = document.body.classList.contains('white-content');
+    },
+    ...mapState([
+      'logged',
+      'whiteTheme'
+    ])
   },
   methods: {
     dateEquals(a, b) {

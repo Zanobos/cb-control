@@ -20,7 +20,7 @@
 .off-canvas-sidebar{
     @include linear-gradient($primary-states, $primary);
     height: calc(100vh - 90px);
-    width: 230px;
+    width: $sidebar-width;
     position: fixed;
     top: 0;
     left: 0;
@@ -161,7 +161,7 @@
                 text-transform: uppercase;
                 cursor: pointer;
                 //font-size: $font-size-xs;
-                font-size: $font-size-sm;
+                font-size: $font-size-xl;
                 padding: 10px 8px;
                 line-height: $line-height-lg;
             }
@@ -484,7 +484,7 @@
     }
 
     > .content {
-        padding: 78px 30px 30px 280px;
+        padding: 78px 30px 30px $content-padding;
         min-height: calc(100vh - 70px);
     }
 
@@ -664,7 +664,7 @@
     display: block;
     top: 0;
     height: 100%;
-    width: 260px;
+    width: $mobile-sidebar-width;
     right: auto;
     left: 0;
     margin: 0;
@@ -674,7 +674,7 @@
     overflow-y: visible;
     padding: 0;
     @include transition(0.5s cubic-bezier(0.685, 0.0473, 0.346, 1));
-    @include transform-translate-x(-260px);
+    @include transform-translate-x(-$mobile-sidebar-width);
   }
 
   .wrapper{
@@ -691,7 +691,7 @@
   .nav-open{
       .main-panel{
           right: 0;
-          @include transform-translate-x(260px);
+          @include transform-translate-x($mobile-sidebar-width);
       }
 
       .sidebar{
