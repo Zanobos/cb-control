@@ -59,7 +59,7 @@ const store = new Vuex.Store({
   state: {
     bmss: [],
     logged: false,
-    whiteTheme: false
+    whiteTheme: true
   },
   mutations: {
     setBMSs(state, newBMSs) {
