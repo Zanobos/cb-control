@@ -248,10 +248,9 @@ export default {
         temperature: { loadedFlag: false, loadedBMS: '' }
       },
       range: {
-        start: '',
-        end: '',
+        start: new Date((new Date((new Date).setHours(0))).setMinutes(0)),
+        end: new Date((new Date((new Date).setHours(23))).setMinutes(59)),
       },
-      date: '',
       currentRange: {},
       voltageRange: {},
       temperatureRange: {}

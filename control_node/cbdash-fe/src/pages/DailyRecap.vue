@@ -187,8 +187,8 @@ export default {
       loadedErrors: false,
       loadedBMS: '',
 
-      startDate: '',
-      endDate: ''
+      startDate: new Date(),
+      endDate: new Date()
     };
   },
   computed: {

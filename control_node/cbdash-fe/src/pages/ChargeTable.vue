@@ -118,8 +118,8 @@ export default {
       currentPage: 1,
       items: [],
       range: {
-        start: '',
-        end: '',
+        start: new Date((new Date((new Date).setHours(0))).setMinutes(0)),
+        end: new Date((new Date((new Date).setHours(23))).setMinutes(59)),
       }
     };
   },
@@ -167,8 +167,8 @@ export default {
 
       const dataQuery = this.buildQuery()
 
-      console.log('Querying influx for charge data.')
-      console.log(dataQuery)
+      //console.log('Querying influx for charge data.')
+      //console.log(dataQuery)
       queryApi.queryRows(dataQuery, {
         next(row, tableMeta) {
           const o = tableMeta.toObject(row)
