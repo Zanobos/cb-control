@@ -187,8 +187,8 @@ export default {
       loadedErrors: false,
       loadedBMS: '',
 
-      startDate: new Date(),
-      endDate: new Date()
+      startDate: new Date((new Date((new Date).setHours(0))).setMinutes(0)),
+      endDate: new Date((new Date((new Date).setHours(23))).setMinutes(59))
     };
   },
   computed: {
@@ -323,7 +323,7 @@ export default {
       //console.log('Querying influx for daily recap.');
       //console.log(infoQuery)
       //console.log(settingsQuery)
-      //console.log(cyclesQuery)
+      console.log(cyclesQuery)
       //console.log(errorQuery)
       queryApi.queryRows(infoQuery, {
         next(row, tableMeta) {
