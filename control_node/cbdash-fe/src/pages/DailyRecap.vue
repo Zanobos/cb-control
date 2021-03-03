@@ -308,9 +308,9 @@ export default {
       const cyclesQuery = `from(bucket: "telemetry")
                           |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
                           |> filter(fn: (r) => r._measurement == "tlm" )
-                          |> filter(fn: (r) => r.bms == "1" )
+                          |> filter(fn: (r) => r.bms == "${this.selectedBMS}" )
                           |> filter(fn: (r) => r._field == "totalTmr" )
-                          |> top(n:1, columns: ["_time"])`
+                          |> top(n:1, columns: ["_value"])`
 
       const errorQuery = `from(bucket: "telemetry") 
                           |> range(start: ${this.startDate.toISOString()}, stop: ${this.endDate.toISOString()})
@@ -405,7 +405,7 @@ export default {
         complete() {
           //console.log('CYCLES FETCH SUCCESS')
           outerScope.totalTmr = cycleTimes.reduce((a,b) => a + b, 0)
-          outerScope.numCycles = cycleTimes.length
+          outerScope.numCycles = cycleTimes.length > 0 ? cycleTimes.length - 1 : 0
         },
       })
 
