@@ -1,6 +1,18 @@
+
 $sidebar-width: 300px;
 $mobile-sidebar-width: 280px !default;
 
 :root {
     font-size: large;
 }
+
+.sidebar,
+.off-canvas-sidebar {
+    .nav {
+        li{
+            > a {
+                font-size: .875rem * 1.428 !important;
+            }
+        } 
+    }
+} 

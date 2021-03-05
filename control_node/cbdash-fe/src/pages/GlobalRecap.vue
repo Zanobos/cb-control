@@ -128,7 +128,8 @@ export default {
     },
     ...mapState([
       'logged',
-      'whiteTheme'
+      'whiteTheme',
+      'calendarColor'
     ])
   },
   watch: {

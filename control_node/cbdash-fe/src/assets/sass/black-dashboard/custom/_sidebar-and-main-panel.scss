@@ -160,8 +160,7 @@
                 position: relative;
                 text-transform: uppercase;
                 cursor: pointer;
-                //font-size: $font-size-xs;
-                font-size: $font-size-xl;
+                font-size: $font-size-sm;
                 padding: 10px 8px;
                 line-height: $line-height-lg;
             }
@@ -367,7 +366,12 @@
     }
 
     &[data="vue"] {
-      @include linear-gradient($vue-states, $vue);
+      @if variable-exists(sidebar-color-bottom) and variable-exists(sidebar-color-top) {
+        @include linear-gradient($sidebar-color-bottom, $sidebar-color-top);
+      }
+      @else{
+        @include linear-gradient($vue-states, $vue);
+      }
     }
 
     .user{

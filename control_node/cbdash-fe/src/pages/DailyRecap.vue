@@ -2,7 +2,7 @@
   <div>
     <vc-date-picker 
       v-model="startDate"
-      color="green"
+      :color="calendarColor"
       :is-dark="!whiteTheme"
       locale="en-GB"
       :max-date="new Date()"
@@ -211,7 +211,8 @@ export default {
     },
     ...mapState([
       'logged',
-      'whiteTheme'
+      'whiteTheme',
+      'calendarColor'
     ])
   },
   watch: {

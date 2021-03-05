@@ -107,6 +107,9 @@ $default:       #344675 !default;
 //$warning:       #ff8d72 !default;
 //$danger:        #fd5d93 !default;
 $primary:       $green !default;
+  @if variable-exists(main-color) {
+    $primary:       $main-color;
+  }
 $secondary:     $gray-600 !default;
 $success:       $blue !default;
 $info:          $cyan !default;

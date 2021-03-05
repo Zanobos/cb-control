@@ -39,11 +39,11 @@ import '@fontsource/poppins/700.css'
 import '@fontsource/poppins/800.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 
+import colors from '@/assets/sass/colors.scss'
+
 Vue.use(ModalPlugin)
 Vue.use(BlackDashboard);
-//Vue.use(VueApexCharts);
 Vue.use(VueNumerals);
-//Vue.component('apexchart', VueApexCharts);
 Vue.use(DropdownPlugin)
 Vue.use(PaginationPlugin)
 Vue.use(TablePlugin)
@@ -54,12 +54,12 @@ Vue.use(VCalendar, {
   componentPrefix: 'vc',  // Use <vc-calendar /> instead of <v-calendar />
 });
 
-
 const store = new Vuex.Store({
   state: {
     bmss: [],
     logged: false,
-    whiteTheme: true
+    whiteTheme: true,
+    calendarColor: colors.mainColor ? hueToColor(hexToHsl(colors.mainColor)[0]) : 'green'
   },
   mutations: {
     setBMSs(state, newBMSs) {
@@ -128,3 +128,50 @@ new Vue({
     clearInterval(this.interval)
   }
 }).$mount("#app");
+
+
+function hexToHsl(hexColor){
+
+  var r = parseInt(hexColor.substr(1,2), 16);
+  var g = parseInt(hexColor.substr(3,2), 16);
+  var b = parseInt(hexColor.substr(5,2), 16);
+
+  r /= 255, g /= 255, b /= 255;
+  var max = Math.max(r, g, b), min = Math.min(r, g, b);
+  var h, s, l = (max + min) / 2;
+
+  if(max == min){
+      h = s = 0; // achromatic
+  }else{
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch(max){
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+  }
+
+  return [h, s, l];
+}
+
+function hueToColor(h) {
+  var hue = h*360;
+  if(hue >= 20 && hue < 40)
+    return 'orange';
+  if(hue >= 40 && hue < 80)
+    return 'yellow';
+  if(hue >= 80 && hue < 160)
+    return 'green';
+  if(hue >= 160 && hue < 200)
+    return 'teal';
+  if(hue >= 200 && hue < 270)
+    return 'blue';
+  if(hue >= 270 && hue < 300)
+    return 'purple';
+  if(hue >= 300 && hue < 330)
+    return 'pink';
+  else
+    return 'red';
+}

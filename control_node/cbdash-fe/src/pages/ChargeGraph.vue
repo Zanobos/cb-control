@@ -20,7 +20,7 @@
           <vc-date-picker
             v-model="range.start"
             mode="dateTime"
-            color="green"
+            :color="calendarColor"
             :is-dark="!whiteTheme"
             locale="en-GB"
             is24hr
@@ -43,7 +43,7 @@
           <vc-date-picker
             v-model="range.end"
             mode="dateTime"
-            color="green"
+            :color="calendarColor"
             :is-dark="!whiteTheme"
             locale="en-GB"
             is24hr
@@ -271,7 +271,8 @@ export default {
     },
     ...mapState([
       'logged',
-      'whiteTheme'
+      'whiteTheme',
+      'calendarColor'
     ])
   },
   watch: {

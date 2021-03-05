@@ -1,0 +1,10 @@
+
+$main-color: #2dce89;
+$sidebar-color-top: #42b883;
+$sidebar-color-bottom: #389466;
+
+:export {
+    mainColor: $main-color;
+    sidebarColorTop: $sidebar-color-top;
+    sidebarColorBottom: $sidebar-color-bottom;
+}
