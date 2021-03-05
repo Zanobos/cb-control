@@ -21,3 +21,9 @@ npm run serve
 ```bash
 npm run build
 ```
+
+## Customization
+
+The primary colors of the application can be configured through sass variables in `src/assets/sass/colors.scss` .
+
+The sidebar logo is loaded from `src/assets/img/logo.png` .
