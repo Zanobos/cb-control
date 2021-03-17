@@ -79,12 +79,11 @@ const fluxQuery = `from(bucket: "telemetry")
                     |> yield()`
 */
 const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -5m)
+                    |> range(start: -10m)
                     |> filter(fn: (r) => r["_measurement"] == "tlm")
                     |> filter(fn: (r) => r["_field"] == "IP")
-                    |> group(columns: ["bms", "origin"])
+                    |> group(columns: ["origin"]) 
                     |> top(n:1, columns: ["_time"])
-                    |> distinct()
                     |> yield()`
                 
 export default {
@@ -137,7 +136,18 @@ export default {
           const o = tableMeta.toObject(row)
           //console.log("CB found ", o)
           //if(o.origin && o.bms)
+
+          /*
+          if(newCBsList.some(item => item.cbs == o.origin)) {
+            var foundIndex = newCBsList.findIndex(item => item.cbs == o.origin);
+            newCBsList[foundIndex] = {cbs: o.origin, bms: o.bms};
+          } else {
             newCBsList.push({cbs: o.origin, bms: o.bms})
+          }
+          */
+
+          newCBsList.push({cbs: o.origin, bms: o.bms})
+
         },
         error(error) {
           console.log('CBS FETCH ERROR')
@@ -219,15 +229,15 @@ export default {
 <style>
 
 .charged {
-  border-left: 5px solid #2dce89
+  border-left: 75px solid #2dce89
 }
 
 .half-charged {
-  border-left: 5px solid #fcdd42 
+  border-left: 75px solid #fcdd42 
 }
 
 .not-charged {
-  border-left: 5px solid #f5365c 
+  border-left: 75px solid #f5365c 
 }
 
 </style>
