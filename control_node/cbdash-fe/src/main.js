@@ -15,21 +15,16 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 import RouterPrefetch from 'vue-router-prefetch'
 import App from "./App";
-// TIP: change to import router from "./router/starterRouter"; to start with a clean layout
 import router from "./router/index";
 import BlackDashboard from "./plugins/blackDashboard";
 import i18n from "./i18n";
-//import './registerServiceWorker'
-//import VueApexCharts from 'vue-apexcharts'
 import VCalendar from 'v-calendar'
 import Vuex from 'vuex'
-import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
-import { DropdownPlugin, TablePlugin } from 'bootstrap-vue'
-import { PaginationPlugin } from 'bootstrap-vue'
+import {DropdownPlugin, ModalPlugin, TablePlugin, PaginationPlugin} from 'bootstrap-vue'
 import VueNumerals from 'vue-numerals';
-import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
+import {InfluxDB} from '@influxdata/influxdb-client'
 import {url, token, org} from '@/config/env'
-import { ModalPlugin } from 'bootstrap-vue'
+import colors from '@/assets/sass/colors.scss'
 
 import '@fontsource/poppins/200.css'
 import '@fontsource/poppins/300.css'
@@ -39,17 +34,15 @@ import '@fontsource/poppins/700.css'
 import '@fontsource/poppins/800.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 
-import colors from '@/assets/sass/colors.scss'
-
-Vue.use(ModalPlugin)
-Vue.use(BlackDashboard);
-Vue.use(VueNumerals);
+Vue.use(BlackDashboard)
 Vue.use(DropdownPlugin)
+Vue.use(ModalPlugin)
 Vue.use(PaginationPlugin)
 Vue.use(TablePlugin)
-Vue.use(VueRouter);
+Vue.use(VueNumerals)
+Vue.use(VueRouter)
+Vue.use(RouterPrefetch)
 Vue.use(Vuex)
-Vue.use(RouterPrefetch);
 Vue.use(VCalendar, {
   componentPrefix: 'vc',  // Use <vc-calendar /> instead of <v-calendar />
 });
