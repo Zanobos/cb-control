@@ -87,7 +87,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('current', currentRange), 'current')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('current', currentRange, true), 'current')">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -110,7 +110,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('voltage', currentRange), 'voltage')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('voltage', currentRange, true), 'voltage')">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -133,7 +133,7 @@
           </div>
         </div>
       <div class="card-footer text-right">
-        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('temperature', currentRange), 'temperature')">Export CSV</base-button>
+        <base-button type="primary-nogradient" @click="queryToCsv(buildQuery('temperature', currentRange, true), 'temperature')">Export CSV</base-button>
       </div>
       </card>
     </div>
@@ -460,7 +460,7 @@ export default {
       this.loadedData.temperature.loadedFlag = false
 
       this.currentRange = {...this.range}
-      this.voltageDomain = {...this.range}
+      this.voltageRange = {...this.range}
       this.temperatureRange = {...this.range}
 
       if(this.logged) {
@@ -469,9 +469,9 @@ export default {
         this.setGiraffeDefaultMode()
       }
 
-      this.queryAndRender(this.buildQuery('current', this.currentRange), this.selectedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
-      this.queryAndRender(this.buildQuery('voltage', this.voltageDomain), this.selectedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
-      this.queryAndRender(this.buildQuery('tempBatt', this.temperatureRange), this.selectedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
+      this.queryAndRender(this.buildQuery('current', this.currentRange, false), this.selectedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
+      this.queryAndRender(this.buildQuery('voltage', this.voltageRange, false), this.selectedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
+      this.queryAndRender(this.buildQuery('tempBatt', this.temperatureRange, false), this.selectedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
 
     },
     setGiraffeDefaultMode() {
@@ -493,11 +493,13 @@ export default {
       currentConfig.onSetXDomain = (range) => {
         const newRange = {start: new Date(range[0]), end: new Date(range[1])}
         currentConfig.xDomain = [newRange.start.getTime(), newRange.end.getTime()]
-        this.queryAndRender(this.buildQuery('current', newRange), this.loadedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
+        this.currentRange = newRange
+        this.queryAndRender(this.buildQuery('current', newRange, false), this.loadedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
       }
       currentConfig.onResetXDomain = () => {
         currentConfig.xDomain = [this.range.start.getTime(), this.range.end.getTime()]
-        this.queryAndRender(this.buildQuery('current', this.range), this.loadedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
+        this.currentRange = {...this.range}
+        this.queryAndRender(this.buildQuery('current', this.range, false), this.loadedBMS, currentConfig, 'Current', 'chart-current', this.loadedData.current, 0)
       }
 
       voltageConfig.xDomain = null
@@ -505,11 +507,13 @@ export default {
       voltageConfig.onSetXDomain = (range) => {
         const newRange = {start: new Date(range[0]), end: new Date(range[1])}
         voltageConfig.xDomain = [newRange.start.getTime(), newRange.end.getTime()]
-        this.queryAndRender(this.buildQuery('voltage', newRange), this.loadedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
+        this.voltageRange = newRange
+        this.queryAndRender(this.buildQuery('voltage', newRange, false), this.loadedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
       }
       voltageConfig.onResetXDomain = () => {
         voltageConfig.xDomain = [this.range.start.getTime(), this.range.end.getTime()]
-        this.queryAndRender(this.buildQuery('voltage', this.range), this.loadedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
+        this.voltageRange = {...this.range}
+        this.queryAndRender(this.buildQuery('voltage', this.range, false), this.loadedBMS, voltageConfig, 'Voltage', 'chart-voltage', this.loadedData.voltage)
       }
 
       temperatureConfig.xDomain = null
@@ -517,27 +521,30 @@ export default {
       temperatureConfig.onSetXDomain = (range) => {
         const newRange = {start: new Date(range[0]), end: new Date(range[1])}
         temperatureConfig.xDomain = [newRange.start.getTime(), newRange.end.getTime()]
-        this.queryAndRender(this.buildQuery('tempBatt', newRange), this.loadedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
+        this.temperatureRange = newRange
+        this.queryAndRender(this.buildQuery('tempBatt', newRange, false), this.loadedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
       }
       temperatureConfig.onResetXDomain = () => {
         temperatureConfig.xDomain = [this.range.start.getTime(), this.range.end.getTime()]
-        this.queryAndRender(this.buildQuery('tempBatt', this.range), this.loadedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
+        this.temperatureRange = {...this.range}
+        this.queryAndRender(this.buildQuery('tempBatt', this.range, false), this.loadedBMS, temperatureConfig, 'Temperature', 'chart-temperature', this.loadedData.temperature)
       }
     },
     getBucket() {
       return this.logged ? adminBucket : bucket
     },
-    buildQuery(field, range) {
+    buildQuery(field, range, unaggregated) {
       return `from(bucket: "${this.getBucket()}") 
               |> range(start: ${range.start.toISOString()}, stop: ${range.end.toISOString()})
               |> filter(fn: (r) => r._measurement == "tlm")
               |> filter(fn: (r) => r.bms == "${this.loadedBMS}")
               |> filter(fn: (r) => (r._field == "${field}"))` +
-              (this.logged ? this.getAggregationWindow(range) : '') +
+              (unaggregated ? '': this.getAggregationWindow(range)) +
              `|> group(columns: ["bms"])
-              |> sort(columns: ["_time"])` 
+              |> sort(columns: ["_time"])`
     },
     getAggregationWindow(range) {
+      if(!this.logged) return ''
       var aw = this.computeAggregationWindowIntervalString(maxDataPoints, range.start, range.end)
       //return `|> aggregateWindow(every: ${aw}, fn: last, createEmpty: false)`
       return `|> aggregateWindow(every: ${aw}, fn: mean, createEmpty: false)`
