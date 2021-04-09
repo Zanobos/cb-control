@@ -20,11 +20,12 @@ import BlackDashboard from "./plugins/blackDashboard";
 import i18n from "./i18n";
 import VCalendar from 'v-calendar'
 import Vuex from 'vuex'
-import {DropdownPlugin, ModalPlugin, TablePlugin, PaginationPlugin} from 'bootstrap-vue'
+import { DropdownPlugin, ModalPlugin, TablePlugin, PaginationPlugin } from 'bootstrap-vue'
 import VueNumerals from 'vue-numerals';
-import {InfluxDB} from '@influxdata/influxdb-client'
-import {url, token, org} from '@/config/env'
+import { InfluxDB } from '@influxdata/influxdb-client'
+import { url, token, org, aliasFile } from '@/config/env'
 import colors from '@/assets/sass/colors.scss'
+import { parse } from 'yaml'
 
 import '@fontsource/poppins/200.css'
 import '@fontsource/poppins/300.css'
@@ -49,12 +50,16 @@ Vue.use(VCalendar, {
 
 const store = new Vuex.Store({
   state: {
+    alias: {},
     bmss: [],
     logged: false,
     whiteTheme: true,
     calendarColor: colors.mainColor ? hueToColor(hexToHsl(colors.mainColor)[0]) : 'green'
   },
   mutations: {
+    setAlias(state, newAlias) {
+      state.alias = newAlias
+    },
     setBMSs(state, newBMSs) {
       state.bmss = newBMSs
     },
@@ -107,11 +112,19 @@ new Vue({
           outerScope.$store.commit('setBMSs', bms)
         },
       })
+    },
+    fetchAlias: function () {
+      fetch(aliasFile, {cache: "reload"})
+        .then(response => response.text())
+        .then(text => {
+          const alias = parse(text)
+          this.$store.commit('setAlias', alias)
+        });
     }
   },
   created: function () {
+    this.fetchAlias()
     this.fetchBMS()
-    
     this.interval = setInterval(function () {
       this.fetchBMS()
     }.bind(this), 5000)
@@ -121,7 +134,6 @@ new Vue({
     clearInterval(this.interval)
   }
 }).$mount("#app");
-
 
 function hexToHsl(hexColor){
 

@@ -6,6 +6,7 @@
     <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-6 col-md-6">
       <!-- Add a function in card sass like the one fore the button, use a selector like card-border-$primary where $primary can be any of the one defined in config -->
       <!--<div v-bind:class="['card', 'card-stats', ((i*73)%90) > 15 ? ( ((i*73)%90) > 50 ? 'charged' : 'half-charged') : 'not-charged']" >-->
+      <!-- use a filter!!! -->
       <div v-bind:class="['card', 'card-stats', cbData.bms ? (
         cbData.charge ? ( 
           cbData.charge > 15 ? ( 
@@ -52,7 +53,11 @@
                 <div class="numbers">
                     <p class="card-category">Battery status</p>
                     <!--<h1 class="card-text">{{(i*73)%90}}% {{ (i%5) == 0 ? '(Refill)' : ''}}</h1>-->
-                    <h1 class="card-text">{{cbData.bms ? cbData.charge + "%" : "-"}}</h1>
+                    <h1 class="card-text">
+                      <i v-if="cbData.bmsError" class="fas fa-exclamation-triangle" style="color: red;"></i>
+                      {{cbData | computeBMSstatus}}
+                    </h1>
+                    
                 </div>
               </div>
 
@@ -68,18 +73,11 @@
 import { mapState } from 'vuex'
 const iconsContext = require.context('@/assets/icons/', true, /\.svg$/);
 import {InfluxDB, FluxTableMetaData} from '@influxdata/influxdb-client'
-import {url, token, org} from '@/config/env'
+import {url, token, org, presenceLookbackTime} from '@/config/env'
 const queryApi = new InfluxDB({url, token}).getQueryApi(org)
-/*
+
 const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -5m)
-                    |> filter(fn: (r) => r["_measurement"] == "tlm")
-                    |> filter(fn: (r) => r["_field"] == "IP")
-                    |> distinct()
-                    |> yield()`
-*/
-const fluxQuery = `from(bucket: "telemetry") 
-                    |> range(start: -10m)
+                    |> range(start: -${presenceLookbackTime})
                     |> filter(fn: (r) => r["_measurement"] == "tlm")
                     |> filter(fn: (r) => r["_field"] == "IP")
                     |> group(columns: ["origin"]) 
@@ -107,6 +105,44 @@ export default {
   watch: {
     whiteTheme(newValue, oldValue) {
       this.toggleImages()
+    }
+  },
+  filters: {
+    computeBMSstatus(cbData) {
+      //console.log("Computing bms status")
+      //console.log(cbData)
+      if(cbData.bms) {
+        var status = cbData.charge + "%"
+        if(cbData.bmsError) {
+          var errCode = cbData.bmsError >> 7
+          if(errCode == 1) {
+            status += " Refill"
+          }
+          else
+            status += " Error"
+        }
+        return status
+      }
+        
+      else if (cbData.bmsError) {
+        const errCode = cbData.bmsError
+        if(errCode == 1)
+          return "CAN error"
+        else if(errCode == 2)
+          return "AUX error"
+        else if(errCode == 3)
+          return "CAN & AUX error"
+        else if(errCode == 4)
+          return "PWR error"
+        else if(errCode == 5)
+          return "PWR, CAN error"
+        else if(errCode == 6)
+          return "PWR, AUX error"
+        else
+          return "Error"
+      }  
+      else
+        return "-"
     }
   },
   methods: {
@@ -155,6 +191,7 @@ export default {
         },
         complete() {
           //console.log('CBS FETCH SUCCESS')
+          //console.log(newCBsList)
           outerScope.cbsList = newCBsList
           outerScope.getCBsStatuses()
         },
@@ -182,36 +219,38 @@ export default {
     },
     getStatusPromise(cbsListElement) {
       return new Promise((resolve, reject) => {
-        var outerscope = {resolve, reject}
-        var query = `from(bucket: "telemetry") 
-                      |> range(start: -1d)
-                      |> filter(fn: (r) => r._measurement == "tlm")
-                      |> filter(fn: (r) => r.origin == "${cbsListElement.cbs}")
-                      |> filter(fn: (r) =>  r._field == "chgPercent" or 
-                        r._field == "capacity" or
-                        r._field == "chgTmr" or
-                        r._field == "chgTime" )
-                      |> group(columns: ["origin", "_field"])
-                      |> top(n:1, columns: ["_time"])`;
+        const outerScope = {resolve, reject}
+        const bmsStatusQuery = `from(bucket: "telemetry") 
+                              |> range(start: -1d)
+                              |> filter(fn: (r) => r._measurement == "tlm")
+                              |> filter(fn: (r) => r.origin == "${cbsListElement.cbs}")
+                              |> filter(fn: (r) =>  r._field == "chgPercent" or 
+                                r._field == "capacity" or
+                                r._field == "chgTmr" or
+                                r._field == "chgTime" or
+                                r._field == "bmsError"  )
+                              |> group(columns: ["origin", "_field"])
+                              |> top(n:1, columns: ["_time"])`;
 
-        queryApi.queryRows(query, {
+        queryApi.queryRows(bmsStatusQuery, {
           next(row, tableMeta) {
             const o = tableMeta.toObject(row)
             if(o._field == "chgPercent") cbsListElement.charge = o._value
             if(o._field == "capacity") cbsListElement.ah = o._value
             if(o._field == "chgTmr") cbsListElement.minutesRecharged = o._value
             if(o._field == "chgTime") cbsListElement.hoursToRecharge = o._value
+            if(o._field == "bmsError") cbsListElement.bmsError = o._value
           },
           error(error) {
             console.log(`${cbsListElement.cbs} DATA FETCH ERROR`)
             console.error(error)
-            outerscope.reject(new Error(error))
+            outerScope.reject(new Error(error))
           },
           complete() {
-            //console.log(`${e.cbs} DATA FETCH SUCCESS`)
+            //console.log(`${cbsListElement.cbs} DATA FETCH SUCCESS`)
             //console.log(`Telemetry for cb: ${cbsListElement.cbs}`)
             //console.log(cbsListElement)
-            outerscope.resolve(cbsListElement)
+            outerScope.resolve(cbsListElement)
           },
         })
       });

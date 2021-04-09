@@ -93,6 +93,7 @@ export default {
       selectedBMS: '',
       numCycles: '',
       totalTmr: '',
+      totalChgTime: '',
 
       loadedData: false,
       loadedSettings: false,
@@ -117,9 +118,10 @@ export default {
     },
     getSettings() {
       return [
+        { key: 'Serial Number', value: (this.alias[this.loadedBMS] || "") },
         { key: 'Nominal voltage', value: this.settings.vNominal },
         { key: 'Charge curve', value: this.settings.tech },
-        { key: 'Charge time', value: this.settings.chgTime },
+        { key: 'Charge time', value: this.formatMinutes(this.totalChgTime) },
         { key: 'Manufacturer', value: this.settings.man },
         { key: 'Year', value: this.settings.yearConst },
         { key: 'Type', value: this.settings.batt_type },
@@ -127,6 +129,7 @@ export default {
       ]
     },
     ...mapState([
+      'alias',
       'logged',
       'whiteTheme',
       'calendarColor'
@@ -145,6 +148,7 @@ export default {
       var outerScope = this
       var settings = {}
       var cycleTimes = []
+      var partialChargeTimes = []
       this.items = []
       this.loadedData = false
       this.loadedSettings = false
@@ -157,7 +161,8 @@ export default {
                           |> range(start: -10y)
                           |> filter(fn: (r) => r._measurement == "tlm" )
                           |> filter(fn: (r) => r.bms == "${this.selectedBMS}" )
-                          |> filter(fn: (r) => r._field == "totalTmr" )
+                          |> filter(fn: (r) => r._field == "totalTmr" or
+                            r._field == "chgTime" )
                           |> top(n:1, columns: ["_value"])`                  
 
       const settingsQuery = `from(bucket: "telemetry") 
@@ -194,6 +199,9 @@ export default {
           const o = tableMeta.toObject(row)
           if(o.numCycle && o._field == 'totalTmr')
             cycleTimes.push(Number(o._value) || 0)
+          if(o._field == 'chgTime') {
+            partialChargeTimes.push(Number(o._value) || 0)
+          }
         },
         error(error) {
           console.log('CYCLES FETCH ERROR')
@@ -202,6 +210,7 @@ export default {
         complete() {
           //console.log('CYCLES FETCH SUCCESS')
           outerScope.totalTmr = cycleTimes.reduce((a,b) => a + b, 0)
+          outerScope.totalChgTime = partialChargeTimes.reduce((a,b) => a + b, 0)
           outerScope.numCycles = cycleTimes.length > 0 ? cycleTimes.length - 1 : 0
           outerScope.loadedData = true;
         },
