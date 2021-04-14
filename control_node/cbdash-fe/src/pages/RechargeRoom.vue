@@ -54,7 +54,7 @@
                     <p class="card-category">Battery status</p>
                     <!--<h1 class="card-text">{{(i*73)%90}}% {{ (i%5) == 0 ? '(Refill)' : ''}}</h1>-->
                     <h1 class="card-text">
-                      <i v-if="cbData.bmsError" class="fas fa-exclamation-triangle" style="color: red;"></i>
+                      <i v-if="(cbData.bms && cbData.bmsError) || cbData.cbError" class="fas fa-exclamation-triangle" style="color: red;"></i>
                       {{cbData | computeBMSstatus}}
                     </h1>
                     
@@ -124,8 +124,8 @@ export default {
         return status
       }
         
-      else if (cbData.bmsError) {
-        const errCode = cbData.bmsError
+      else if (cbData.cbError) {
+        const errCode = cbData.cbError
         if(errCode == 1)
           return "CAN error"
         else if(errCode == 2)
@@ -228,7 +228,8 @@ export default {
                                 r._field == "capacity" or
                                 r._field == "chgTmr" or
                                 r._field == "chgTime" or
-                                r._field == "bmsError"  )
+                                r._field == "bmsError" or
+                                r._field == "cbError" )
                               |> group(columns: ["origin", "_field"])
                               |> top(n:1, columns: ["_time"])`;
 
@@ -240,6 +241,7 @@ export default {
             if(o._field == "chgTmr") cbsListElement.minutesRecharged = o._value
             if(o._field == "chgTime") cbsListElement.hoursToRecharge = o._value
             if(o._field == "bmsError") cbsListElement.bmsError = o._value
+            if(o._field == "cbError") cbsListElement.cbError = o._value
           },
           error(error) {
             console.log(`${cbsListElement.cbs} DATA FETCH ERROR`)
