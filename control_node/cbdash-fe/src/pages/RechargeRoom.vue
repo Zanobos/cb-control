@@ -54,7 +54,7 @@
                     <p class="card-category">Battery status</p>
                     <!--<h1 class="card-text">{{(i*73)%90}}% {{ (i%5) == 0 ? '(Refill)' : ''}}</h1>-->
                     <h1 class="card-text">
-                      <i v-if="(cbData.bms && cbData.bmsError) || cbData.cbError" class="fas fa-exclamation-triangle" style="color: red;"></i>
+                      <i v-if="(cbData.bms && cbData.bmsError) || (cbData.cbError && !cbData.bms)" class="fas fa-exclamation-triangle" style="color: red;"></i>
                       {{cbData | computeBMSstatus}}
                     </h1>
                     
