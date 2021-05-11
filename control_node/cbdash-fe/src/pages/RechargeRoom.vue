@@ -1,19 +1,8 @@
 <template>
-  <div class="row">
-
-    <!--<div v-for="i in 15" :key="i" class="col-lg-4 col-md-6">-->
-      
+  <div class="row"> 
     <div v-for="(cbData, index) in cbsData" :key="index" class="col-lg-6 col-md-6">
-      <!-- Add a function in card sass like the one fore the button, use a selector like card-border-$primary where $primary can be any of the one defined in config -->
-      <!--<div v-bind:class="['card', 'card-stats', ((i*73)%90) > 15 ? ( ((i*73)%90) > 50 ? 'charged' : 'half-charged') : 'not-charged']" >-->
-      <!-- use a filter!!! -->
-      <div v-bind:class="['card', 'card-stats', cbData.bms ? (
-        cbData.charge ? ( 
-          cbData.charge > 15 ? ( 
-            cbData.charge > 50 ? 'charged' : 'half-charged') : 
-            'not-charged') : 
-            '') :
-            '']" >
+      <!-- Add a function in card sass like the one for the button, use a selector like card-border-$primary where $primary can be any of the ones defined in config -->
+      <div v-bind:class="cbData | computeBMSCardCssClass" >
           <div class="card-body text-center">
 
             <div class="row" style="margin-bottom: 15px">
@@ -29,10 +18,8 @@
 
               <div class="col-6">
                 <div class="numbers">
-                    <!--<p class="card-category">Charger status</p>-->
-                    <!--<h1 class="card-text">Good</h1>-->
                     <p class="card-category">Charge Time</p>
-                    <h1 class="card-text">{{cbData.bms ? formatRemainingChargeTime(cbData.minutesRecharged, cbData.hoursToRecharge*60) : "-"}}</h1>
+                    <h1 class="card-text">{{computeChargeTime(cbData)}}</h1>
                 </div>
               </div>
 
@@ -143,6 +130,16 @@ export default {
       }  
       else
         return "-"
+    },
+    computeBMSCardCssClass(cbData) {
+      if(!cbData.bms || !cbData.charge)
+        return ['card', 'card-stats', 'disconnected']
+      if(cbData.charge < 80)
+        return ['card', 'card-stats', 'not-charged']
+      if(cbData.charge < 100)
+        return ['card', 'card-stats', 'half-charged']
+      else
+        return ['card', 'card-stats', 'charged']
     }
   },
   methods: {
@@ -162,6 +159,11 @@ export default {
     },
     formatMinutes(minutes) {
       return Math.trunc(minutes/60) + 'h '  + (minutes % 60) + 'm'
+    },
+    computeChargeTime(cbData) {
+      if(!cbData.bms) return "-"
+      if(cbData.charge && cbData.charge == 100) return this.formatMinutes(0)
+      return this.formatRemainingChargeTime(cbData.minutesRecharged, cbData.hoursToRecharge*60)
     },
     getCBs() {
       const outerScope = this
@@ -274,11 +276,15 @@ export default {
 }
 
 .half-charged {
-  border-left: 75px solid #fcdd42 
+  border-left: 75px solid #fc8c42 
 }
 
 .not-charged {
   border-left: 75px solid #f5365c 
+}
+
+.disconnected {
+  border-left: 75px solid #035afc
 }
 
 </style>
