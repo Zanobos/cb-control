@@ -33,7 +33,7 @@
                   width="70px" height="" alt="charger" title="charger" />
                 </div>
                 <!--<h1 class="card-text">#{{i*3%5}}</h1>-->
-                <h1 class="card-text">{{cbData.bms ? cbData.bms : "-"}}</h1>
+                <h1 class="card-text">{{cbData.bms ? (alias[cbData.bms] || cbData.bms) : "-"}}</h1>
               </div>
 
               <div class="col-6">
@@ -85,6 +85,7 @@ export default {
   },
   computed: {
     ...mapState([
+      'alias',
       'logged',
       'whiteTheme'
     ])
